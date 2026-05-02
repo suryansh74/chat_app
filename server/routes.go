@@ -4,11 +4,14 @@ import (
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
+	"github.com/go-chi/chi/v5/middleware"
 	"github.com/suryansh74/chat_app/pkg/logger"
 	"github.com/suryansh74/chat_app/shared/helper"
 )
 
 func (s *server) setupRoutes() {
+	s.router.Use(middleware.Logger)
+	s.router.Use(middleware.Recoverer)
 	s.router.Route("/api", func(r chi.Router) {
 		r.Get("/check_health", checkHealth)
 	})
