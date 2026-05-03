@@ -9,7 +9,6 @@ import (
 	"unicode"
 
 	authservices "github.com/suryansh74/chat_app/internal/auth/services"
-	"github.com/suryansh74/chat_app/shared/email"
 	"github.com/suryansh74/chat_app/shared/helper"
 	"github.com/suryansh74/chat_app/shared/middleware"
 	"github.com/suryansh74/chat_app/shared/token"
@@ -17,12 +16,12 @@ import (
 
 type PasswordResetHandler struct {
 	service     authservices.EmailVerificationServicePort
-	emailSender *email.Sender
+	emailSender EmailSender
 	tokenMaker  token.Maker
 	redirectURL string
 }
 
-func NewPasswordResetHandler(service authservices.EmailVerificationServicePort, emailSender *email.Sender, tokenMaker token.Maker, redirectURL string) *PasswordResetHandler {
+func NewPasswordResetHandler(service authservices.EmailVerificationServicePort, emailSender EmailSender, tokenMaker token.Maker, redirectURL string) *PasswordResetHandler {
 	return &PasswordResetHandler{
 		service:     service,
 		emailSender: emailSender,

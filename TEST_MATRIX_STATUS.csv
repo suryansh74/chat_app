@@ -1,0 +1,135 @@
+Test Suite,Category,Scenario / Subtest,Expected Outcome,Risk Level,Status,Notes
+AuthHandler.Register,Validation,Empty JSON body submitted,400 "invalid request body",Medium,RESOLVED,Existing test covers this
+AuthHandler.Register,Validation,Missing required fields (name, email, password, password_confirmation),400 with field-specific errors,Medium,RESOLVED,Existing test covers this
+AuthHandler.Register,Validation,Name under 3 characters,400 "name must be at least 3 characters",Medium,RESOLVED,Existing test covers this
+AuthHandler.Register,Validation,Invalid email format,400 "email must be a valid email",Medium,RESOLVED,Existing test covers this
+AuthHandler.Register,Validation,Password without uppercase,400 "password must contain at least one uppercase letter...",Medium,RESOLVED,Existing test covers this
+AuthHandler.Register,Validation,Password without number,400 "password must contain at least one number...",Medium,RESOLVED,Existing test covers this
+AuthHandler.Register,Validation,Password without special character,400 "password must contain at least one special character...",Medium,RESOLVED,Existing test covers this
+AuthHandler.Register,Validation,Passwords do not match,400 "password and password_confirmation must match",Medium,RESOLVED,Existing test covers this
+AuthHandler.Register,Validation,Extremely long name (>1000 chars),400 or 413 error,High,PENDING,No test - need to add body size limits
+AuthHandler.Register,Validation,Extremely long email (>1000 chars),400 or 413 error,High,PENDING,No test - need to add body size limits
+AuthHandler.Register,Validation,Extremely long password (>1000 chars),400 or 413 error,High,PENDING,No test - need to add body size limits
+AuthHandler.Register,Happy Path,Valid registration with all required fields,201 with session cookie,Low,RESOLVED,Existing test covers this
+AuthHandler.Register,Auth,Email already exists,409 "error",Medium,RESOLVED,Existing test covers this
+AuthHandler.Register,DB Error,Repository create fails unexpectedly,500 "internal server error",Medium,PENDING,No explicit test
+AuthHandler.Register,Token Error,Token creation fails,500 "failed to create token",High,PENDING,No explicit test
+AuthHandler.Login,Validation,Empty JSON body,400 "invalid request body",Medium,RESOLVED,Existing test covers this
+AuthHandler.Login,Validation,Missing email or password,400 with field-specific errors,Medium,RESOLVED,Existing test covers this
+AuthHandler.Login,Validation,Invalid email format,400 "email must be a valid email",Medium,RESOLVED,Existing test covers this
+AuthHandler.Login,Happy Path,Valid credentials RememberMe=false,200 with 1-hour session cookie,Low,RESOLVED,Existing test covers this
+AuthHandler.Login,Happy Path,Valid credentials RememberMe=true,200 with 30-day session cookie,Medium,RESOLVED,Existing test covers this
+AuthHandler.Login,Auth,Wrong email,401 "invalid credentials",Medium,RESOLVED,Existing test covers this
+AuthHandler.Login,Auth,Wrong password,401 "invalid credentials",Medium,RESOLVED,Existing test covers this
+AuthHandler.Login,Auth,Non-existent user,401 "invalid credentials",Medium,RESOLVED,Existing test covers this
+AuthHandler.Profile,Happy Path,Authenticated user requests profile,200 with user id name email,Low,RESOLVED,Test covers context-based auth
+AuthHandler.Profile,Auth,No session cookie,401 "unauthorized",Medium,RESOLVED,Existing test covers this
+AuthHandler.Profile,Auth,Invalid/expired token,401 "unauthorized: invalid session",Medium,RESOLVED,Existing test covers this
+AuthHandler.Logout,Happy Path,User calls logout,200 "logged out successfully",Low,RESOLVED,Existing test covers this
+AuthHandler.Logout,Edge Case,Old token still valid after logout,Token remains valid until expiry,High,PENDING,This is by design - need token revocation
+EmailVerificationHandler.SendOTP,Auth,User already verified,400 "email already verified",Medium,RESOLVED,NEW TEST ADDED
+EmailVerificationHandler.SendOTP,Happy Path,Unverified user requests OTP,200 "OTP sent successfully",Low,RESOLVED,NEW TEST ADDED
+EmailVerificationHandler.SendOTP,Security,No rate limiting on OTP requests,Multiple OTPs generated,High,PENDING,Need rate limiting middleware
+EmailVerificationHandler.SendOTP,Security,OTP in plaintext in email body,OTP visible in email content,High,PENDING,Security concern but not testable
+EmailVerificationHandler.VerifyOTP,Validation,Empty OTP,400 "otp is required",Medium,RESOLVED,NEW TEST ADDED
+EmailVerificationHandler.VerifyOTP,Validation,OTP not 6 digits,400 "otp must be exactly 6 digits",Medium,RESOLVED,NEW TEST ADDED
+EmailVerificationHandler.VerifyOTP,Validation,OTP contains non-numeric chars,400 "otp must be exactly 6 digits",Medium,RESOLVED,NEW TEST ADDED
+EmailVerificationHandler.VerifyOTP,Happy Path,Correct OTP within expiry,200 with new token IsVerified=true,Low,RESOLVED,NEW TEST ADDED
+EmailVerificationHandler.VerifyOTP,Auth,Wrong OTP increments attempt counter,400 "invalid OTP",Medium,RESOLVED,NEW TEST ADDED
+EmailVerificationHandler.VerifyOTP,Auth,Max attempts exceeded,400 "max attempts exceeded",Medium,RESOLVED,NEW TEST ADDED
+EmailVerificationHandler.VerifyOTP,Auth,OTP expired,400 "OTP has expired",Medium,RESOLVED,NEW TEST ADDED
+EmailVerificationHandler.VerifyOTP,Security,Off-by-one: exactly otpMaxAttempts+1 attempts,Allows N+1 attempts before blocking,Medium,PENDING,Tested in service - confirmed off-by-one exists
+EmailVerificationHandler.VerifyOTP,Token Error,Token creation fails after verification,500 "failed to create token",High,PENDING,No explicit test
+EmailVerificationHandler.Verified,Happy Path,Authenticated user checks verification status,200 {"verified": bool},Low,RESOLVED,NEW TEST ADDED
+PasswordResetHandler.SendOTP,Happy Path,Authenticated user requests password reset OTP,200 "OTP sent successfully",Low,RESOLVED,NEW TEST ADDED
+PasswordResetHandler.SendOTP,Security,No rate limiting on reset OTP,Multiple OTPs generated,High,PENDING,Need rate limiting middleware
+PasswordResetHandler.VerifyOTP,Validation,OTP missing from request,400 "otp is required",Medium,RESOLVED,NEW TEST ADDED
+PasswordResetHandler.VerifyOTP,Validation,OTP not 6 digits or non-numeric,400 "otp must be exactly 6 digits",Medium,RESOLVED,NEW TEST ADDED
+PasswordResetHandler.VerifyOTP,Happy Path,Correct password reset OTP,200 with redirect URL and reset_token,Low,RESOLVED,NEW TEST ADDED
+PasswordResetHandler.VerifyOTP,Auth,Wrong OTP,400 "invalid OTP",Medium,RESOLVED,NEW TEST ADDED
+PasswordResetHandler.VerifyOTP,Auth,Max reset attempts exceeded,400 "max attempts exceeded",Medium,RESOLVED,NEW TEST ADDED
+PasswordResetHandler.SetPassword,Validation,Missing reset_token,400 "reset token is required",Medium,RESOLVED,NEW TEST ADDED
+PasswordResetHandler.SetPassword,Validation,Invalid/expired reset_token,400 "invalid or expired reset token",Medium,RESOLVED,NEW TEST ADDED
+PasswordResetHandler.SetPassword,Validation,reset_token doesn't match authenticated user,400 "invalid reset token",Medium,RESOLVED,NEW TEST ADDED
+PasswordResetHandler.SetPassword,Validation,Missing password,400 "password is required",Medium,RESOLVED,NEW TEST ADDED
+PasswordResetHandler.SetPassword,Validation,Missing password_confirmation,400 "password confirmation is required",Medium,RESOLVED,NEW TEST ADDED
+PasswordResetHandler.SetPassword,Validation,Passwords don't match,400 "password and confirmation do not match",Medium,RESOLVED,NEW TEST ADDED
+PasswordResetHandler.SetPassword,Validation,Password doesn't meet complexity requirements,400 with password complexity error,Medium,RESOLVED,NEW TEST ADDED
+PasswordResetHandler.SetPassword,Security,No current password verification,Any authenticated user can change any password,CRITICAL,PENDING,This is a vulnerability - needs code fix
+PasswordResetHandler.SetPassword,Security,Reset token returned in HTTP body,Token visible in response,CRITICAL,PENDING,This is a vulnerability - needs code fix
+PasswordResetHandler.SetPassword,Happy Path,All validations pass,200 "password updated successfully",Low,RESOLVED,NEW TEST ADDED
+PasswordResetHandler.SetPassword,Error,Service fails,500 "failed to set password",Medium,RESOLVED,NEW TEST ADDED
+AuthService.Register,Validation,Service-level validation of RegisterInput,Returns array of ValidationError,Medium,RESOLVED,Existing test covers this
+AuthService.Register,DB,EmailExists returns error,Propagates error to handler,Medium,PENDING,No explicit test
+AuthService.Register,DB,EmailExists returns true,Returns EmailAlreadyExists error,Medium,RESOLVED,Existing test covers this
+AuthService.Register,Security,bcrypt.GenerateFromPassword fails,Returns error no user created,Medium,PENDING,No explicit test
+AuthService.Register,DB,CreateUser fails,Propagates error to handler,Medium,PENDING,No explicit test
+AuthService.Login,Validation,Service-level validation of LoginInput,Returns array of ValidationError,Medium,RESOLVED,Existing test covers this
+AuthService.Login,DB,GetUserByEmail returns error,Returns ErrInvalidCredentials,Medium,RESOLVED,Existing test covers this
+AuthService.Login,Auth,bcrypt.CompareHashAndPassword fails,Returns ErrInvalidCredentials,Medium,RESOLVED,Existing test covers this
+AuthService.Login,Happy Path,Valid login,Returns User without password field,Low,RESOLVED,Existing test covers this
+AuthService.ValidateRegisterInput,Validation,Custom password validation,Validates uppercase digit special char,Medium,RESOLVED,Existing test covers this
+AuthService.ValidateRegisterInput,Validation,Password confirmation match,Validates passwords match,Medium,RESOLVED,Existing test covers this
+AuthService.Logout,Happy Path,Logout called,Returns nil (no-op),Low,RESOLVED,Existing test covers this
+EmailVerificationService.SendOTP,DB,GetUserByEmail fails,Returns error,Medium,PENDING,No explicit test
+EmailVerificationService.SendOTP,Auth,User already verified,Returns ErrAlreadyVerified,Medium,RESOLVED,NEW TEST ADDED
+EmailVerificationService.SendOTP,Happy Path,OTP generated successfully,Returns 6-digit OTP,Low,RESOLVED,NEW TEST ADDED
+EmailVerificationService.SendOTP,Security,OTP stored in plaintext in user object,Exposed if user object leaked,High,PENDING,No test - requires code change to encrypt OTP
+EmailVerificationService.VerifyOTP,DB,GetUserByEmail fails,Returns error,Medium,PENDING,No explicit test
+EmailVerificationService.VerifyOTP,Auth,User already verified,Returns ErrAlreadyVerified,Medium,RESOLVED,NEW TEST ADDED
+EmailVerificationService.VerifyOTP,Auth,No OTP in user record,Returns ErrInvalidOTP,Medium,RESOLVED,NEW TEST ADDED
+EmailVerificationService.VerifyOTP,Auth,OTP expired,Returns ErrOTPExpired,Medium,RESOLVED,NEW TEST ADDED
+EmailVerificationService.VerifyOTP,Auth,Max attempts exceeded,Clears OTP returns ErrMaxAttempts,Medium,RESOLVED,NEW TEST ADDED
+EmailVerificationService.VerifyOTP,Auth,Wrong OTP,Increments attempts returns ErrInvalidOTP,Medium,RESOLVED,NEW TEST ADDED
+EmailVerificationService.VerifyOTP,Happy Path,Correct OTP,Sets IsVerified=true clears OTP fields,Low,RESOLVED,NEW TEST ADDED
+EmailVerificationService.SetPassword,DB,GetUserByEmail fails,Returns error,Medium,PENDING,No explicit test
+EmailVerificationService.SetPassword,Security,bcrypt fails,Returns error,Medium,PENDING,No explicit test
+EmailVerificationService.SetPassword,DB,UpdateUser fails,Returns error,Medium,PENDING,No explicit test
+EmailVerificationService.SetPassword,Happy Path,Password set successfully,Hashes password updates user,Low,RESOLVED,NEW TEST ADDED
+InMemoryUserRepository.EmailExists,Happy Path,Email exists,Returns true nil,Low,RESOLVED,Existing test covers this
+InMemoryUserRepository.EmailExists,Happy Path,Email doesn't exist,Returns false nil,Low,RESOLVED,Existing test covers this
+InMemoryUserRepository.CreateUser,Validation,Email already exists,Returns EmailAlreadyExists error,Medium,RESOLVED,Existing test covers this
+InMemoryUserRepository.CreateUser,Happy Path,New user created,Adds to both maps returns nil,Low,RESOLVED,Existing test covers this
+InMemoryUserRepository.GetUserByEmail,DB,User not found,Returns "user not found" error,Medium,RESOLVED,Existing test covers this
+InMemoryUserRepository.GetUserByEmail,Happy Path,User found,Returns User nil,Low,RESOLVED,Existing test covers this
+InMemoryUserRepository.UpdateUser,DB,User ID not found,Returns "user not found" error,Medium,PENDING,No explicit test
+InMemoryUserRepository.UpdateUser,Happy Path,User updated,Updates in both maps returns nil,Low,PENDING,No explicit test
+InMemoryUserRepository.seed,Happy Path,Repository initialized,Seed users loaded into memory,Low,RESOLVED,Existing test covers this
+InMemoryUserRepository.seed,Security,Seed users have plaintext passwords,Passwords not hashed in seed data,CRITICAL,PENDING,This is a vulnerability - needs code fix
+AuthMiddleware,Auth,No session cookie,401 "unauthorized: session cookie missing",Medium,RESOLVED,Existing test covers this
+AuthMiddleware,Auth,Invalid cookie value,401 "unauthorized: invalid session",Medium,RESOLVED,Existing test covers this
+AuthMiddleware,Auth,Expired token,401 "unauthorized: invalid session",Medium,RESOLVED,Existing test covers this
+AuthMiddleware,Happy Path,Valid token,Sets user context passes to handler,Low,RESOLVED,Existing test covers this
+GuestMiddleware,Auth,Already logged in user accesses /auth/*,403 "forbidden: already logged in",Low,RESOLVED,Test covers context-based auth
+GuestMiddleware,Happy Path,Guest user accesses /auth/*,Passes to handler,Low,PENDING,No explicit test
+GuestMiddleware,Edge Case,Invalid cookie but not empty,Passes to handler,Low,PENDING,No explicit test
+PasetoMaker.NewPasetoMaker,Config,Key length not 32 bytes,Returns error "invalid key size",High,RESOLVED,Existing test covers this
+PasetoMaker.NewPasetoMaker,Happy Path,Valid 32-byte key,Returns PasetoMaker instance,Low,RESOLVED,Existing test covers this
+PasetoMaker.CreateToken,Happy Path,Valid payload,Returns encrypted PASETO string,Low,RESOLVED,Existing test covers this
+PasetoMaker.CreateToken,Error,Payload creation fails,Returns error,Medium,PENDING,No explicit test
+PasetoMaker.VerifyToken,Auth,Invalid/ tampered token,Returns error from paseto.Decrypt,Medium,RESOLVED,Existing test covers this
+PasetoMaker.VerifyToken,Auth,Token expired,Returns error from payload.Valid(),Medium,RESOLVED,Existing test covers this
+PasetoMaker.VerifyToken,Happy Path,Valid token,Returns Payload with user info,Low,RESOLVED,Existing test covers this
+EmailSender.SendEmail,Network,SMTP server unreachable,Returns error "failed to send email",High,PENDING,Need mock SMTP server
+EmailSender.SendEmail,Network,Invalid credentials,Returns error from smtp.SendMail,High,PENDING,Need mock SMTP server
+EmailSender.SendEmail,Happy Path,Email sent successfully,Returns nil,Low,PENDING,Need mock SMTP server
+Config.LoadConfig,Config,.env file missing,Returns error "failed to read config",High,PENDING,No explicit test
+Config.LoadConfig,Config,Missing required env vars,Viper uses zero values may cause runtime issues,High,PENDING,No explicit test
+Config.LoadConfig,Happy Path,All required config present,Returns populated Config,Low,PENDING,No explicit test
+Server.NewServer,Config,TokenSymmetricKey wrong length,panics (no graceful error),CRITICAL,PENDING,This is a vulnerability - needs code fix
+Server.NewServer,Happy Path,All dependencies created,Returns configured server,Low,PENDING,No explicit test
+Server.Run,Network,Port already in use,Returns error from ListenAndServe,High,PENDING,No explicit test
+Server.Run,Happy Path,Server starts successfully,Listens on Host:Port,Low,PENDING,No explicit test
+Server.Run,Config,Duplicate srv.Run() in main.go,Server starts twice,CRITICAL,PENDING,This is a vulnerability - needs code fix
+General,Security,No HTTPS enforcement,Serves over HTTP,High,PENDING,Need to add HTTPS redirect
+General,Security,No rate limiting anywhere,Vulnerable to brute force/DoS,High,PENDING,Need to add rate limiting middleware
+General,Security,No graceful shutdown,Doesn't handle SIGTERM/SIGINT,Medium,PENDING,Need to add graceful shutdown
+General,Security,No request body size limit,Vulnerable to large payload DoS,High,PENDING,Need to add body size limits
+General,Security,No request timeout,Vulnerable to slowloris attack,High,PENDING,Need to add request timeout
+General,Security,SameSite=1 (Lax) cookie,CSRF risk on some paths,Medium,PENDING,Need to configure SameSite properly
+General,Security,No Secure flag on cookie,Cookie sent over HTTP,Medium,PENDING,Need to add Secure flag
+General,Security,No CSRF token mechanism,Relies only on SameSite cookie,Medium,PENDING,Need to add CSRF tokens
+General,Validation,Case-sensitive email handling,user@example.com vs User@example.com different,Low,PENDING,Need email normalization
+General,Validation,No Unicode normalization,Homograph attacks possible in names,Low,PENDING,Need Unicode normalization
+General,Auth,Unverified users can access /profile,Only checks token validity not IsVerified,Medium,PENDING,Need to check IsVerified
+General,Auth,No role-based access control,All authenticated users have same privileges,Medium,PENDING,Need RBAC implementation

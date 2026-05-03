@@ -75,12 +75,18 @@ func (m *MockTokenMaker) VerifyToken(tokenStr string) (*token.Payload, error) {
 	if args.Get(0) == nil {
 		return nil, args.Error(1)
 	}
-	p := args.Get(0).(testPayload)
-	return &token.Payload{
-		User:      p.User,
-		IssuedAt:  p.IssuedAt,
-		ExpiredAt: p.ExpiredAt,
-	}, args.Error(1)
+	switch v := args.Get(0).(type) {
+	case *token.Payload:
+		return v, args.Error(1)
+	case testPayload:
+		return &token.Payload{
+			User:      v.User,
+			IssuedAt:  v.IssuedAt,
+			ExpiredAt: v.ExpiredAt,
+		}, args.Error(1)
+	default:
+		return nil, args.Error(1)
+	}
 }
 
 func TestAuthHandler_Register_Success(t *testing.T) {

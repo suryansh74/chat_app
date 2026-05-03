@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"net/http"
 
-	"github.com/suryansh74/chat_app/shared/email"
 	"github.com/suryansh74/chat_app/shared/helper"
 	"github.com/suryansh74/chat_app/shared/middleware"
 	"github.com/suryansh74/chat_app/shared/token"
@@ -12,14 +11,18 @@ import (
 	authservices "github.com/suryansh74/chat_app/internal/auth/services"
 )
 
+type EmailSender interface {
+	SendEmail(to, subject, body string) error
+}
+
 type EmailVerificationHandler struct {
 	service      authservices.EmailVerificationServicePort
-	emailSender  *email.Sender
+	emailSender  EmailSender
 	tokenMaker   token.Maker
 	cookieMaxAge int
 }
 
-func NewEmailVerificationHandler(service authservices.EmailVerificationServicePort, emailSender *email.Sender, tokenMaker token.Maker, cookieMaxAge int) *EmailVerificationHandler {
+func NewEmailVerificationHandler(service authservices.EmailVerificationServicePort, emailSender EmailSender, tokenMaker token.Maker, cookieMaxAge int) *EmailVerificationHandler {
 	return &EmailVerificationHandler{
 		service:      service,
 		emailSender:  emailSender,
