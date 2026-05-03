@@ -12,6 +12,7 @@ import (
 	authdomain "github.com/suryansh74/chat_app/internal/auth/domain"
 	authservices "github.com/suryansh74/chat_app/internal/auth/services"
 	"github.com/suryansh74/chat_app/shared/helper"
+	"github.com/suryansh74/chat_app/shared/middleware"
 	"github.com/suryansh74/chat_app/shared/token"
 	"github.com/suryansh74/chat_app/shared/validator"
 )
@@ -134,5 +135,23 @@ func (h *AuthHandler) Register(w http.ResponseWriter, r *http.Request) {
 
 	helper.WriteJSON(w, http.StatusCreated, map[string]string{
 		"message": "user registered successfully",
+	})
+}
+
+func (h *AuthHandler) Profile(w http.ResponseWriter, r *http.Request) {
+	payload, ok := r.Context().Value(middleware.UserContextKey).(*token.Payload)
+	if !ok {
+		helper.WriteJSON(w, http.StatusUnauthorized, map[string]string{
+			"error": "unauthorized",
+		})
+		return
+	}
+
+	helper.WriteJSON(w, http.StatusOK, map[string]interface{}{
+		"user": map[string]string{
+			"id":    payload.User.ID,
+			"name":  payload.User.Name,
+			"email": payload.User.Email,
+		},
 	})
 }

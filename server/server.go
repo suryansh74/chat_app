@@ -16,6 +16,7 @@ type server struct {
 	cfg         *config.Config
 	router      *chi.Mux
 	authHandler *handlers.AuthHandler
+	tokenMaker  token.Maker
 }
 
 func NewServer(cfg *config.Config) *server {
@@ -28,6 +29,7 @@ func NewServer(cfg *config.Config) *server {
 		cfg:         cfg,
 		router:      chi.NewRouter(),
 		authHandler: authHandler,
+		tokenMaker:  tokenMaker,
 	}
 }
 

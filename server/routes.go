@@ -7,6 +7,7 @@ import (
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/suryansh74/chat_app/pkg/logger"
 	"github.com/suryansh74/chat_app/shared/helper"
+	authmiddleware "github.com/suryansh74/chat_app/shared/middleware"
 )
 
 func (s *server) setupRoutes() {
@@ -17,6 +18,11 @@ func (s *server) setupRoutes() {
 
 		r.Route("/auth", func(r chi.Router) {
 			r.Post("/register", s.authHandler.Register)
+		})
+
+		r.Group(func(protected chi.Router) {
+			protected.Use(authmiddleware.AuthMiddleware(s.tokenMaker))
+			protected.Get("/profile", s.authHandler.Profile)
 		})
 	})
 }
