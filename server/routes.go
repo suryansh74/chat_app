@@ -27,6 +27,15 @@ func (s *server) setupRoutes() {
 			protected.Get("/profile", s.authHandler.Profile)
 			protected.Post("/logout", s.authHandler.Logout)
 		})
+
+		r.Group(func(emailVerified chi.Router) {
+			emailVerified.Use(authmiddleware.AuthMiddleware(s.tokenMaker))
+			emailVerified.Route("/email_verification", func(r chi.Router) {
+				r.Post("/send_otp", s.emailVerificationHandler.SendOTP)
+				r.Post("/verify_otp", s.emailVerificationHandler.VerifyOTP)
+				r.Get("/verified", s.emailVerificationHandler.Verified)
+			})
+		})
 	})
 }
 

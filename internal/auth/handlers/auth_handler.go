@@ -109,9 +109,10 @@ func (h *AuthHandler) Register(w http.ResponseWriter, r *http.Request) {
 	}
 
 	tokenUser := &token.TokenUser{
-		ID:    user.ID,
-		Name:  user.Name,
-		Email: user.Email,
+		ID:         user.ID,
+		Name:       user.Name,
+		Email:      user.Email,
+		IsVerified: user.IsVerified,
 	}
 
 	accessToken, err := h.tokenMaker.CreateToken(tokenUser, time.Hour)
@@ -188,9 +189,10 @@ func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 	}
 
 	tokenUser := &token.TokenUser{
-		ID:    user.ID,
-		Name:  user.Name,
-		Email: user.Email,
+		ID:         user.ID,
+		Name:       user.Name,
+		Email:      user.Email,
+		IsVerified: user.IsVerified,
 	}
 
 	duration := time.Hour

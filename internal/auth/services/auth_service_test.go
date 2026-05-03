@@ -31,6 +31,11 @@ func (m *MockUserRepository) GetUserByEmail(email string) (*authdomain.User, err
 	return args.Get(0).(*authdomain.User), args.Error(1)
 }
 
+func (m *MockUserRepository) UpdateUser(user *authdomain.User) error {
+	args := m.Called(user)
+	return args.Error(0)
+}
+
 func TestValidateRegisterInput_NameTooShort(t *testing.T) {
 	repo := new(MockUserRepository)
 	service := NewAuthService(repo)

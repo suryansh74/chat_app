@@ -9,14 +9,16 @@ import (
 	authrepositories "github.com/suryansh74/chat_app/internal/auth/repositories"
 	authservices "github.com/suryansh74/chat_app/internal/auth/services"
 	"github.com/suryansh74/chat_app/pkg/logger"
+	"github.com/suryansh74/chat_app/shared/email"
 	"github.com/suryansh74/chat_app/shared/token"
 )
 
 type server struct {
-	cfg         *config.Config
-	router      *chi.Mux
-	authHandler *handlers.AuthHandler
-	tokenMaker  token.Maker
+	cfg                      *config.Config
+	router                   *chi.Mux
+	authHandler              *handlers.AuthHandler
+	emailVerificationHandler *handlers.EmailVerificationHandler
+	tokenMaker               token.Maker
 }
 
 func NewServer(cfg *config.Config) *server {
@@ -25,11 +27,16 @@ func NewServer(cfg *config.Config) *server {
 	tokenMaker, _ := token.NewPasetoMaker(cfg.TokenSymmetricKey)
 	authHandler := handlers.NewAuthHandler(service, tokenMaker, cfg.CookieMaxAge, cfg.CookieSameSite)
 
+	emailVerificationService := authservices.NewEmailVerificationService(repo, cfg.OtpExpiryMinutes, cfg.OtpMaxAttempts)
+	emailSender := email.NewSender(cfg.SMTPHost, cfg.SMTPPort, cfg.SMTPUsername, cfg.SMTPPassword)
+	emailVerificationHandler := handlers.NewEmailVerificationHandler(emailVerificationService, emailSender, tokenMaker, cfg.CookieMaxAge)
+
 	return &server{
-		cfg:         cfg,
-		router:      chi.NewRouter(),
-		authHandler: authHandler,
-		tokenMaker:  tokenMaker,
+		cfg:                      cfg,
+		router:                   chi.NewRouter(),
+		authHandler:              authHandler,
+		emailVerificationHandler: emailVerificationHandler,
+		tokenMaker:               tokenMaker,
 	}
 }
 

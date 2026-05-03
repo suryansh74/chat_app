@@ -57,6 +57,20 @@ func (r *InMemoryUserRepository) GetUserByEmail(email string) (*authdomain.User,
 	return user, nil
 }
 
+func (r *InMemoryUserRepository) UpdateUser(user *authdomain.User) error {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+
+	if _, exists := r.usersByID[user.ID]; !exists {
+		return errors.New("user not found")
+	}
+
+	r.usersByID[user.ID] = user
+	r.usersByEmail[user.Email] = user
+
+	return nil
+}
+
 func (r *InMemoryUserRepository) seed() {
 	seedUsers := []*authdomain.User{
 		{ID: "00000000-0000-0000-0000-000000000001", Name: "Alice", Email: "alice@example.com", Password: "Password1!"},

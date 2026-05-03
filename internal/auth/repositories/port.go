@@ -6,4 +6,5 @@ type UserRepository interface {
 	EmailExists(email string) (bool, error)
 	CreateUser(user *authdomain.User) error
 	GetUserByEmail(email string) (*authdomain.User, error)
+	UpdateUser(user *authdomain.User) error
 }

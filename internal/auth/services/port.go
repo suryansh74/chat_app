@@ -9,3 +9,9 @@ type AuthServicePort interface {
 	ValidateLoginInput(input *authdomain.LoginInput) []error
 	Logout() error
 }
+
+type EmailVerificationServicePort interface {
+	SendOTP(email string) (string, error)
+	VerifyOTP(email, otp string) error
+	IsVerified(email string) (bool, error)
+}
