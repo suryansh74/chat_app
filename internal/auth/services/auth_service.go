@@ -2,6 +2,8 @@ package auth
 
 import (
 	"github.com/go-playground/validator/v10"
+	"github.com/google/uuid"
+	apperr "github.com/suryansh74/chat_app/internal/auth/apperr"
 	authdomain "github.com/suryansh74/chat_app/internal/auth/domain"
 	"github.com/suryansh74/chat_app/internal/auth/repositories"
 )
@@ -27,40 +29,41 @@ func NewAuthService(repo repositories.UserRepository) *AuthService {
 	}
 }
 
-func (s *AuthService) Register(input *authdomain.RegisterInput) error {
+func (s *AuthService) Register(input *authdomain.RegisterInput) (*authdomain.User, error) {
 	errors := s.ValidateRegisterInput(input)
 	if len(errors) > 0 {
-		return errors[0]
+		return nil, errors[0]
 	}
 
 	exists, err := s.repo.EmailExists(input.Email)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	if exists {
-		return ValidationError{Field: "Email", Message: "email already exists"}
+		return nil, apperr.NewEmailAlreadyExists(input.Email)
 	}
 
 	user := &authdomain.User{
+		ID:       uuid.New().String(),
 		Name:     input.Name,
 		Email:    input.Email,
 		Password: input.Password,
 	}
 
 	if err := s.repo.CreateUser(user); err != nil {
-		return err
+		return nil, err
 	}
 
-	return nil
+	return user, nil
 }
 
-func (s *AuthService) ValidateRegisterInput(input *authdomain.RegisterInput) []ValidationError {
-	var errors []ValidationError
+func (s *AuthService) ValidateRegisterInput(input *authdomain.RegisterInput) []error {
+	var validationErrors []ValidationError
 
 	err := s.validate.Struct(input)
 	if err != nil {
 		for _, err := range err.(validator.ValidationErrors) {
-			errors = append(errors, ValidationError{
+			validationErrors = append(validationErrors, ValidationError{
 				Field:   err.Field(),
 				Message: err.Error(),
 			})
@@ -80,12 +83,23 @@ func (s *AuthService) ValidateRegisterInput(input *authdomain.RegisterInput) []V
 			}
 		}
 		if !(hasUpper && hasDigit && hasSpecial) {
-			errors = append(errors, ValidationError{
+			validationErrors = append(validationErrors, ValidationError{
 				Field:   "Password",
 				Message: "password must contain at least one uppercase letter, one number, and one special character",
 			})
 		}
 	}
 
+	if input.Password != input.PasswordConfirmation {
+		validationErrors = append(validationErrors, ValidationError{
+			Field:   "PasswordConfirmation",
+			Message: "password and password_confirmation must match",
+		})
+	}
+
+	var errors []error
+	for _, e := range validationErrors {
+		errors = append(errors, e)
+	}
 	return errors
 }

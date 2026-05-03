@@ -1,9 +1,10 @@
 package authdomain
 
 type RegisterInput struct {
-	Name     string `json:"name" validate:"required,min=3"`
-	Email    string `json:"email" validate:"required,email"`
-	Password string `json:"password" validate:"required"`
+	Name                 string `json:"name" validate:"required,min=3"`
+	Email                string `json:"email" validate:"required,email"`
+	Password             string `json:"password" validate:"required"`
+	PasswordConfirmation string `json:"password_confirmation" validate:"required"`
 }
 
 type User struct {

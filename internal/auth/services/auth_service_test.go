@@ -27,9 +27,10 @@ func TestValidateRegisterInput_NameTooShort(t *testing.T) {
 	service := NewAuthService(repo)
 
 	input := &authdomain.RegisterInput{
-		Name:     "ab",
-		Email:    "test@example.com",
-		Password: "Password1!",
+		Name:                 "ab",
+		Email:                "test@example.com",
+		Password:             "Password1!",
+		PasswordConfirmation: "Password1!",
 	}
 
 	errors := service.ValidateRegisterInput(input)
@@ -42,9 +43,10 @@ func TestValidateRegisterInput_InvalidEmail(t *testing.T) {
 	service := NewAuthService(repo)
 
 	input := &authdomain.RegisterInput{
-		Name:     "John",
-		Email:    "invalid-email",
-		Password: "Password1!",
+		Name:                 "John",
+		Email:                "invalid-email",
+		Password:             "Password1!",
+		PasswordConfirmation: "Password1!",
 	}
 
 	errors := service.ValidateRegisterInput(input)
@@ -57,9 +59,10 @@ func TestValidateRegisterInput_PasswordMissingUppercase(t *testing.T) {
 	service := NewAuthService(repo)
 
 	input := &authdomain.RegisterInput{
-		Name:     "John",
-		Email:    "test@example.com",
-		Password: "password1!",
+		Name:                 "John",
+		Email:                "test@example.com",
+		Password:             "password1!",
+		PasswordConfirmation: "password1!",
 	}
 
 	errors := service.ValidateRegisterInput(input)
@@ -72,9 +75,10 @@ func TestValidateRegisterInput_PasswordMissingNumber(t *testing.T) {
 	service := NewAuthService(repo)
 
 	input := &authdomain.RegisterInput{
-		Name:     "John",
-		Email:    "test@example.com",
-		Password: "Password!",
+		Name:                 "John",
+		Email:                "test@example.com",
+		Password:             "Password!",
+		PasswordConfirmation: "Password!",
 	}
 
 	errors := service.ValidateRegisterInput(input)
@@ -87,9 +91,10 @@ func TestValidateRegisterInput_PasswordMissingSpecialChar(t *testing.T) {
 	service := NewAuthService(repo)
 
 	input := &authdomain.RegisterInput{
-		Name:     "John",
-		Email:    "test@example.com",
-		Password: "Password1",
+		Name:                 "John",
+		Email:                "test@example.com",
+		Password:             "Password1",
+		PasswordConfirmation: "Password1",
 	}
 
 	errors := service.ValidateRegisterInput(input)
@@ -102,9 +107,10 @@ func TestValidateRegisterInput_ValidInput(t *testing.T) {
 	service := NewAuthService(repo)
 
 	input := &authdomain.RegisterInput{
-		Name:     "John",
-		Email:    "test@example.com",
-		Password: "Password1!",
+		Name:                 "John",
+		Email:                "test@example.com",
+		Password:             "Password1!",
+		PasswordConfirmation: "Password1!",
 	}
 
 	errors := service.ValidateRegisterInput(input)
@@ -117,9 +123,10 @@ func TestValidateRegisterInput_EmptyFields(t *testing.T) {
 	service := NewAuthService(repo)
 
 	input := &authdomain.RegisterInput{
-		Name:     "",
-		Email:    "",
-		Password: "",
+		Name:                 "",
+		Email:                "",
+		Password:             "",
+		PasswordConfirmation: "",
 	}
 
 	errors := service.ValidateRegisterInput(input)

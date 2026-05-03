@@ -2,6 +2,7 @@ package config
 
 import (
 	"fmt"
+	"time"
 
 	"github.com/spf13/viper"
 )
@@ -10,6 +11,11 @@ type Config struct {
 	Host string `mapstructure:"SERVER_HOST"`
 	Port string `mapstructure:"SERVER_PORT"`
 
+	TokenSymmetricKey   string        `mapstructure:"TOKEN_SYMMETRIC_KEY"`
+	AccessTokenDuration time.Duration `mapstructure:"ACCESS_TOKEN_DURATION"`
+	CookieMaxAge        int           `mapstructure:"COOKIE_MAX_AGE"`
+	CookieSameSite      string        `mapstructure:"COOKIE_SAMESITE"`
+
 	// DBPort         string `mapstructure:"DB_PORT"`
 	// DBHost         string `mapstructure:"DB_HOST"`
 	// DBUser         string `mapstructure:"DB_USER"`
@@ -17,15 +23,10 @@ type Config struct {
 	// DBPassword     string `mapstructure:"DB_PASSWORD"`
 	// CollectionName string `mapstructure:"COLLECTION_NAME"`
 	//
-	// TokenSymmetricKey   string        `mapstructure:"TOKEN_SYMMETRIC_KEY"`
-	// AccessTokenDuration time.Duration `mapstructure:"ACCESS_TOKEN_DURATION"`
-	// GoogleClientID      string        `mapstructure:"GOOGLE_CLIENT_ID"`
-	// GoogleClientSecret  string        `mapstructure:"GOOGLE_CLIENT_SECRET"`
-	// GoogleRedirectURL   string        `mapstructure:"GOOGLE_REDIRECT_URL"`
-	// FrontendURL         string        `mapstructure:"FRONTEND_URL"`
-	//
-	// CookieMaxAge   int    `mapstructure:"COOKIE_MAX_AGE"`
-	// CookieSameSite string `mapstructure:"COOKIE_SAMESITE"`
+	// GoogleClientID      string `mapstructure:"GOOGLE_CLIENT_ID"`
+	// GoogleClientSecret  string `mapstructure:"GOOGLE_CLIENT_SECRET"`
+	// GoogleRedirectURL   string `mapstructure:"GOOGLE_REDIRECT_URL"`
+	// FrontendURL         string `mapstructure:"FRONTEND_URL"`
 	//
 	// SMTPHost     string `mapstructure:"SMTP_HOST"`
 	// SMTPPort     string `mapstructure:"SMTP_PORT"`

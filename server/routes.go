@@ -14,6 +14,10 @@ func (s *server) setupRoutes() {
 	s.router.Use(middleware.Recoverer)
 	s.router.Route("/api", func(r chi.Router) {
 		r.Get("/check_health", checkHealth)
+
+		r.Route("/auth", func(r chi.Router) {
+			r.Post("/register", s.authHandler.Register)
+		})
 	})
 }
 
