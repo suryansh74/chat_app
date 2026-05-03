@@ -151,3 +151,7 @@ func (s *AuthService) ValidateRegisterInput(input *authdomain.RegisterInput) []e
 	}
 	return errors
 }
+
+func (s *AuthService) Logout() error {
+	return nil
+}

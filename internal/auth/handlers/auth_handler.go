@@ -239,3 +239,27 @@ func (h *AuthHandler) Profile(w http.ResponseWriter, r *http.Request) {
 		},
 	})
 }
+
+func (h *AuthHandler) Logout(w http.ResponseWriter, r *http.Request) {
+	if err := h.service.Logout(); err != nil {
+		helper.WriteJSON(w, http.StatusInternalServerError, map[string]string{
+			"error": "logout failed",
+		})
+		return
+	}
+
+	httpCookie := &http.Cookie{
+		Name:     "session_token",
+		Value:    "",
+		Path:     "/",
+		MaxAge:   -1,
+		HttpOnly: true,
+		SameSite: 1,
+	}
+
+	http.SetCookie(w, httpCookie)
+
+	helper.WriteJSON(w, http.StatusOK, map[string]string{
+		"message": "logged out successfully",
+	})
+}

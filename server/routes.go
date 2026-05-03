@@ -24,6 +24,7 @@ func (s *server) setupRoutes() {
 		r.Group(func(protected chi.Router) {
 			protected.Use(authmiddleware.AuthMiddleware(s.tokenMaker))
 			protected.Get("/profile", s.authHandler.Profile)
+			protected.Post("/logout", s.authHandler.Logout)
 		})
 	})
 }

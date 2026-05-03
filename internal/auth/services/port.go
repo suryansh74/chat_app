@@ -7,4 +7,5 @@ type AuthServicePort interface {
 	ValidateRegisterInput(input *authdomain.RegisterInput) []error
 	Login(input *authdomain.LoginInput) (*authdomain.User, error)
 	ValidateLoginInput(input *authdomain.LoginInput) []error
+	Logout() error
 }

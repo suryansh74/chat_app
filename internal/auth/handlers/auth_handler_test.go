@@ -50,6 +50,11 @@ func (m *MockAuthService) ValidateLoginInput(input *authdomain.LoginInput) []err
 	return args.Get(0).([]error)
 }
 
+func (m *MockAuthService) Logout() error {
+	args := m.Called()
+	return args.Error(0)
+}
+
 type testPayload struct {
 	User      *token.TokenUser `json:"user"`
 	IssuedAt  time.Time        `json:"issued_at"`
@@ -232,4 +237,27 @@ func TestAuthHandler_Login_InvalidCredentials(t *testing.T) {
 	handler.Login(w, req)
 
 	assert.Equal(t, http.StatusUnauthorized, w.Code, "should return 401 for invalid credentials")
+}
+
+func TestAuthHandler_Logout_Success(t *testing.T) {
+	mockService := new(MockAuthService)
+	mockToken := new(MockTokenMaker)
+
+	handler := NewAuthHandler(mockService, mockToken, 3600, "Lax")
+
+	mockService.On("Logout").Return(nil)
+
+	body := `{}`
+	req := httptest.NewRequest(http.MethodPost, "/api/auth/logout", bytes.NewBufferString(body))
+	req.Header.Set("Content-Type", "application/json")
+	w := httptest.NewRecorder()
+
+	handler.Logout(w, req)
+
+	assert.Equal(t, http.StatusOK, w.Code, "should return 200 status")
+
+	cookies := w.Result().Cookies()
+	assert.Len(t, cookies, 1, "should have one cookie")
+	assert.Equal(t, "session_token", cookies[0].Name, "cookie should be session_token")
+	assert.Equal(t, -1, cookies[0].MaxAge, "cookie should be expired/cleared")
 }
