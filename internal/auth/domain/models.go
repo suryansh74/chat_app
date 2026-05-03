@@ -18,17 +18,25 @@ type LoginInput struct {
 }
 
 type User struct {
-	ID          string    `json:"id"`
-	Name        string    `json:"name"`
-	Email       string    `json:"email"`
-	Password    string    `json:"-"`
-	IsVerified  bool      `json:"is_verified"`
-	OTP         string    `json:"-"`
-	OTPExpiry   time.Time `json:"-"`
-	OTPAttempts int       `json:"-"`
+	ID                   string    `json:"id"`
+	Name                 string    `json:"name"`
+	Email                string    `json:"email"`
+	Password             string    `json:"-"`
+	IsVerified           bool      `json:"is_verified"`
+	OTP                  string    `json:"-"`
+	OTPExpiry            time.Time `json:"-"`
+	OTPAttempts          int       `json:"-"`
+	PasswordResetOTP     string    `json:"-"`
+	PasswordResetExpiry  time.Time `json:"-"`
+	PasswordResetAttempt int       `json:"-"`
 }
 
 type ValidationError struct {
 	Field   string `json:"field"`
 	Message string `json:"message"`
+}
+
+type SetPasswordInput struct {
+	Password             string `json:"password" validate:"required"`
+	PasswordConfirmation string `json:"password_confirmation" validate:"required"`
 }

@@ -36,6 +36,15 @@ func (s *server) setupRoutes() {
 				r.Get("/verified", s.emailVerificationHandler.Verified)
 			})
 		})
+
+		r.Group(func(passwordReset chi.Router) {
+			passwordReset.Use(authmiddleware.AuthMiddleware(s.tokenMaker))
+			passwordReset.Route("/password_reset", func(r chi.Router) {
+				r.Post("/send_otp", s.passwordResetHandler.SendOTP)
+				r.Post("/verify_otp", s.passwordResetHandler.VerifyOTP)
+				r.Post("/set_password", s.passwordResetHandler.SetPassword)
+			})
+		})
 	})
 }
 

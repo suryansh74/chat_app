@@ -7,13 +7,17 @@ import (
 	"time"
 
 	"github.com/suryansh74/chat_app/internal/auth/repositories"
+	"golang.org/x/crypto/bcrypt"
 )
 
 var (
-	ErrInvalidOTP      = errors.New("invalid OTP")
-	ErrOTPExpired      = errors.New("OTP has expired")
-	ErrMaxAttempts     = errors.New("max attempts exceeded")
-	ErrAlreadyVerified = errors.New("email already verified")
+	ErrInvalidOTP        = errors.New("invalid OTP")
+	ErrOTPExpired        = errors.New("OTP has expired")
+	ErrMaxAttempts       = errors.New("max attempts exceeded")
+	ErrAlreadyVerified   = errors.New("email already verified")
+	ErrInvalidResetToken = errors.New("invalid reset token")
+	ErrResetTokenExpired = errors.New("reset token has expired")
+	ErrMaxResetAttempts  = errors.New("max reset attempts exceeded")
 )
 
 type EmailVerificationService struct {
@@ -119,4 +123,85 @@ func (s *EmailVerificationService) IsVerified(email string) (bool, error) {
 		return false, err
 	}
 	return user.IsVerified, nil
+}
+
+func (s *EmailVerificationService) SendPasswordResetOTP(email string) (string, error) {
+	user, err := s.repo.GetUserByEmail(email)
+	if err != nil {
+		return "", err
+	}
+
+	otp, err := s.GenerateOTP()
+	if err != nil {
+		return "", err
+	}
+
+	user.PasswordResetOTP = otp
+	user.PasswordResetExpiry = time.Now().Add(time.Duration(s.otpExpiryMinutes) * time.Minute)
+	user.PasswordResetAttempt = 0
+
+	if err := s.repo.UpdateUser(user); err != nil {
+		return "", err
+	}
+
+	return otp, nil
+}
+
+func (s *EmailVerificationService) VerifyPasswordResetOTP(email, otp string) error {
+	user, err := s.repo.GetUserByEmail(email)
+	if err != nil {
+		return err
+	}
+
+	if user.PasswordResetOTP == "" {
+		return ErrInvalidResetToken
+	}
+
+	if time.Now().After(user.PasswordResetExpiry) {
+		return ErrResetTokenExpired
+	}
+
+	user.PasswordResetAttempt++
+	if user.PasswordResetAttempt >= s.otpMaxAttempts {
+		user.PasswordResetOTP = ""
+		user.PasswordResetExpiry = time.Time{}
+		user.PasswordResetAttempt = 0
+		s.repo.UpdateUser(user)
+		return ErrMaxResetAttempts
+	}
+
+	if user.PasswordResetOTP != otp {
+		s.repo.UpdateUser(user)
+		return ErrInvalidResetToken
+	}
+
+	user.PasswordResetOTP = ""
+	user.PasswordResetExpiry = time.Time{}
+	user.PasswordResetAttempt = 0
+
+	if err := s.repo.UpdateUser(user); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (s *EmailVerificationService) SetPassword(email, newPassword string) error {
+	user, err := s.repo.GetUserByEmail(email)
+	if err != nil {
+		return err
+	}
+
+	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(newPassword), bcrypt.DefaultCost)
+	if err != nil {
+		return err
+	}
+
+	user.Password = string(hashedPassword)
+
+	if err := s.repo.UpdateUser(user); err != nil {
+		return err
+	}
+
+	return nil
 }

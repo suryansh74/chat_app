@@ -18,6 +18,7 @@ type server struct {
 	router                   *chi.Mux
 	authHandler              *handlers.AuthHandler
 	emailVerificationHandler *handlers.EmailVerificationHandler
+	passwordResetHandler     *handlers.PasswordResetHandler
 	tokenMaker               token.Maker
 }
 
@@ -30,12 +31,14 @@ func NewServer(cfg *config.Config) *server {
 	emailVerificationService := authservices.NewEmailVerificationService(repo, cfg.OtpExpiryMinutes, cfg.OtpMaxAttempts)
 	emailSender := email.NewSender(cfg.SMTPHost, cfg.SMTPPort, cfg.SMTPUsername, cfg.SMTPPassword)
 	emailVerificationHandler := handlers.NewEmailVerificationHandler(emailVerificationService, emailSender, tokenMaker, cfg.CookieMaxAge)
+	passwordResetHandler := handlers.NewPasswordResetHandler(emailVerificationService, emailSender, tokenMaker, cfg.PasswordResetRedirectURL)
 
 	return &server{
 		cfg:                      cfg,
 		router:                   chi.NewRouter(),
 		authHandler:              authHandler,
 		emailVerificationHandler: emailVerificationHandler,
+		passwordResetHandler:     passwordResetHandler,
 		tokenMaker:               tokenMaker,
 	}
 }

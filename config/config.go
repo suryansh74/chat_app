@@ -21,8 +21,9 @@ type Config struct {
 	SMTPUsername string `mapstructure:"SMTP_USERNAME"`
 	SMTPPassword string `mapstructure:"SMTP_PASSWORD"`
 
-	OtpExpiryMinutes int `mapstructure:"OTP_EXPIRY_MINUTES"`
-	OtpMaxAttempts   int `mapstructure:"OTP_MAX_ATTEMPTS"`
+	OtpExpiryMinutes         int    `mapstructure:"OTP_EXPIRY_MINUTES"`
+	OtpMaxAttempts           int    `mapstructure:"OTP_MAX_ATTEMPTS"`
+	PasswordResetRedirectURL string `mapstructure:"PASSWORD_RESET_REDIRECT_URL"`
 }
 
 func LoadConfig() (config Config, err error) {

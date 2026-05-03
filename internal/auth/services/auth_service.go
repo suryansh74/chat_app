@@ -155,3 +155,50 @@ func (s *AuthService) ValidateRegisterInput(input *authdomain.RegisterInput) []e
 func (s *AuthService) Logout() error {
 	return nil
 }
+
+func (s *AuthService) ValidateSetPassword(input *authdomain.SetPasswordInput) []error {
+	var validationErrors []ValidationError
+
+	err := s.validate.Struct(input)
+	if err != nil {
+		for _, err := range err.(validator.ValidationErrors) {
+			validationErrors = append(validationErrors, ValidationError{
+				Field:   err.Field(),
+				Message: err.Error(),
+			})
+		}
+	}
+
+	if len(input.Password) > 0 {
+		hasUpper, hasDigit, hasSpecial := false, false, false
+		for _, ch := range input.Password {
+			switch {
+			case ch >= 'A' && ch <= 'Z':
+				hasUpper = true
+			case ch >= '0' && ch <= '9':
+				hasDigit = true
+			case ch == '!' || ch == '@' || ch == '#' || ch == '$' || ch == '%' || ch == '^' || ch == '&' || ch == '*':
+				hasSpecial = true
+			}
+		}
+		if !(hasUpper && hasDigit && hasSpecial) {
+			validationErrors = append(validationErrors, ValidationError{
+				Field:   "Password",
+				Message: "password must contain at least one uppercase letter, one number, and one special character",
+			})
+		}
+	}
+
+	if input.Password != input.PasswordConfirmation {
+		validationErrors = append(validationErrors, ValidationError{
+			Field:   "PasswordConfirmation",
+			Message: "password and password_confirmation must match",
+		})
+	}
+
+	var errors []error
+	for _, e := range validationErrors {
+		errors = append(errors, e)
+	}
+	return errors
+}
