@@ -18,6 +18,7 @@ func (s *server) setupRoutes() {
 
 		r.Route("/auth", func(r chi.Router) {
 			r.Post("/register", s.authHandler.Register)
+			r.Post("/login", s.authHandler.Login)
 		})
 
 		r.Group(func(protected chi.Router) {

@@ -138,6 +138,90 @@ func (h *AuthHandler) Register(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
+func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
+	var input authdomain.LoginInput
+	if err := json.NewDecoder(r.Body).Decode(&input); err != nil {
+		helper.WriteJSON(w, http.StatusBadRequest, map[string]string{
+			"error": "invalid request body",
+		})
+		return
+	}
+
+	validationErrors := h.service.ValidateLoginInput(&input)
+	if len(validationErrors) > 0 {
+		var formattedErrors []map[string]string
+
+		for _, err := range validationErrors {
+			if ve, ok := err.(govalidator.ValidationErrors); ok {
+				translated := validator.TranslateValidationErrors(ve)
+				for _, t := range translated {
+					formattedErrors = append(formattedErrors, map[string]string{
+						"field":   t.Field,
+						"message": t.Message,
+					})
+				}
+			} else if authErr, ok := err.(authservices.ValidationError); ok {
+				formattedErrors = append(formattedErrors, map[string]string{
+					"field":   authErr.Field,
+					"message": translateServiceError(authErr.Field, authErr.Message),
+				})
+			} else {
+				formattedErrors = append(formattedErrors, map[string]string{
+					"field":   "error",
+					"message": err.Error(),
+				})
+			}
+		}
+
+		helper.WriteJSON(w, http.StatusBadRequest, map[string]interface{}{
+			"errors": formattedErrors,
+		})
+		return
+	}
+
+	user, err := h.service.Login(&input)
+	if err != nil {
+		helper.WriteJSON(w, http.StatusUnauthorized, map[string]string{
+			"error": "invalid credentials",
+		})
+		return
+	}
+
+	tokenUser := &token.TokenUser{
+		ID:    user.ID,
+		Name:  user.Name,
+		Email: user.Email,
+	}
+
+	duration := time.Hour
+	if input.RememberMe {
+		duration = 24 * time.Hour * 30
+	}
+
+	accessToken, err := h.tokenMaker.CreateToken(tokenUser, duration)
+	if err != nil {
+		helper.WriteJSON(w, http.StatusInternalServerError, map[string]string{
+			"error": "failed to create token",
+		})
+		return
+	}
+
+	httpCookie := &http.Cookie{
+		Name:     "session_token",
+		Value:    accessToken,
+		Path:     "/",
+		MaxAge:   h.cookieMaxAge,
+		HttpOnly: true,
+		SameSite: 1,
+	}
+
+	http.SetCookie(w, httpCookie)
+
+	helper.WriteJSON(w, http.StatusOK, map[string]string{
+		"message": "user logged in successfully",
+	})
+}
+
 func (h *AuthHandler) Profile(w http.ResponseWriter, r *http.Request) {
 	payload, ok := r.Context().Value(middleware.UserContextKey).(*token.Payload)
 	if !ok {

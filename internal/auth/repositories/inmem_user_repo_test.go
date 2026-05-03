@@ -88,3 +88,30 @@ func TestInMemoryUserRepository_SeededUsers_ArePresent(t *testing.T) {
 	assert.NoError(t, err)
 	assert.True(t, exists, "seeded user bob should exist")
 }
+
+func TestInMemoryUserRepository_GetUserByEmail_ReturnsUser(t *testing.T) {
+	repo := NewInMemoryUserRepository()
+
+	user := &authdomain.User{
+		ID:       uuid.New().String(),
+		Name:     "John",
+		Email:    "john@example.com",
+		Password: "Password1!",
+	}
+	repo.CreateUser(user)
+
+	foundUser, err := repo.GetUserByEmail("john@example.com")
+
+	assert.NoError(t, err)
+	assert.NotNil(t, foundUser)
+	assert.Equal(t, "John", foundUser.Name)
+	assert.Equal(t, "john@example.com", foundUser.Email)
+}
+
+func TestInMemoryUserRepository_GetUserByEmail_ReturnsErrorForNonExistent(t *testing.T) {
+	repo := NewInMemoryUserRepository()
+
+	_, err := repo.GetUserByEmail("notfound@example.com")
+
+	assert.Error(t, err)
+}

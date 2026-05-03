@@ -1,6 +1,7 @@
 package repositories
 
 import (
+	"errors"
 	"sync"
 
 	apperr "github.com/suryansh74/chat_app/internal/auth/apperr"
@@ -42,6 +43,18 @@ func (r *InMemoryUserRepository) CreateUser(user *authdomain.User) error {
 	r.usersByEmail[user.Email] = user
 
 	return nil
+}
+
+func (r *InMemoryUserRepository) GetUserByEmail(email string) (*authdomain.User, error) {
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+
+	user, exists := r.usersByEmail[email]
+	if !exists {
+		return nil, errors.New("user not found")
+	}
+
+	return user, nil
 }
 
 func (r *InMemoryUserRepository) seed() {

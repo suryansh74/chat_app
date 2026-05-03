@@ -1,12 +1,17 @@
 package auth
 
 import (
+	"errors"
+
 	"github.com/go-playground/validator/v10"
 	"github.com/google/uuid"
 	apperr "github.com/suryansh74/chat_app/internal/auth/apperr"
 	authdomain "github.com/suryansh74/chat_app/internal/auth/domain"
 	"github.com/suryansh74/chat_app/internal/auth/repositories"
+	"golang.org/x/crypto/bcrypt"
 )
+
+var ErrInvalidCredentials = errors.New("invalid credentials")
 
 type ValidationError struct {
 	Field   string `json:"field"`
@@ -43,11 +48,16 @@ func (s *AuthService) Register(input *authdomain.RegisterInput) (*authdomain.Use
 		return nil, apperr.NewEmailAlreadyExists(input.Email)
 	}
 
+	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(input.Password), bcrypt.DefaultCost)
+	if err != nil {
+		return nil, err
+	}
+
 	user := &authdomain.User{
 		ID:       uuid.New().String(),
 		Name:     input.Name,
 		Email:    input.Email,
-		Password: input.Password,
+		Password: string(hashedPassword),
 	}
 
 	if err := s.repo.CreateUser(user); err != nil {
@@ -55,6 +65,44 @@ func (s *AuthService) Register(input *authdomain.RegisterInput) (*authdomain.Use
 	}
 
 	return user, nil
+}
+
+func (s *AuthService) Login(input *authdomain.LoginInput) (*authdomain.User, error) {
+	errors := s.ValidateLoginInput(input)
+	if len(errors) > 0 {
+		return nil, errors[0]
+	}
+
+	user, err := s.repo.GetUserByEmail(input.Email)
+	if err != nil {
+		return nil, ErrInvalidCredentials
+	}
+
+	if err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(input.Password)); err != nil {
+		return nil, ErrInvalidCredentials
+	}
+
+	return user, nil
+}
+
+func (s *AuthService) ValidateLoginInput(input *authdomain.LoginInput) []error {
+	var validationErrors []ValidationError
+
+	err := s.validate.Struct(input)
+	if err != nil {
+		for _, err := range err.(validator.ValidationErrors) {
+			validationErrors = append(validationErrors, ValidationError{
+				Field:   err.Field(),
+				Message: err.Error(),
+			})
+		}
+	}
+
+	var errors []error
+	for _, e := range validationErrors {
+		errors = append(errors, e)
+	}
+	return errors
 }
 
 func (s *AuthService) ValidateRegisterInput(input *authdomain.RegisterInput) []error {

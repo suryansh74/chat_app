@@ -7,6 +7,12 @@ type RegisterInput struct {
 	PasswordConfirmation string `json:"password_confirmation" validate:"required"`
 }
 
+type LoginInput struct {
+	Email      string `json:"email" validate:"required,email"`
+	Password   string `json:"password" validate:"required"`
+	RememberMe bool   `json:"remember_me"`
+}
+
 type User struct {
 	ID       string `json:"id"`
 	Name     string `json:"name"`
