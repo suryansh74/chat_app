@@ -17,6 +17,7 @@ func (s *server) setupRoutes() {
 		r.Get("/check_health", checkHealth)
 
 		r.Route("/auth", func(r chi.Router) {
+			r.Use(authmiddleware.GuestMiddleware(s.tokenMaker))
 			r.Post("/register", s.authHandler.Register)
 			r.Post("/login", s.authHandler.Login)
 		})

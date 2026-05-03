@@ -15,7 +15,6 @@ const UserContextKey contextKey = "user"
 func AuthMiddleware(tokenMaker token.Maker) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			// read cookie
 			cookie, err := r.Cookie("session_token")
 			if err != nil {
 				helper.WriteJSON(w, http.StatusUnauthorized, map[string]string{
@@ -26,7 +25,6 @@ func AuthMiddleware(tokenMaker token.Maker) func(http.Handler) http.Handler {
 
 			tokenStr := cookie.Value
 
-			// verify paseto token
 			payload, err := tokenMaker.VerifyToken(tokenStr)
 			if err != nil {
 				helper.WriteJSON(w, http.StatusUnauthorized, map[string]string{
@@ -35,10 +33,29 @@ func AuthMiddleware(tokenMaker token.Maker) func(http.Handler) http.Handler {
 				return
 			}
 
-			// store payload inside request context
 			ctx := context.WithValue(r.Context(), UserContextKey, payload)
 
 			next.ServeHTTP(w, r.WithContext(ctx))
+		})
+	}
+}
+
+func GuestMiddleware(tokenMaker token.Maker) func(http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			cookie, err := r.Cookie("session_token")
+			if err == nil && cookie.Value != "" {
+				tokenStr := cookie.Value
+				_, err := tokenMaker.VerifyToken(tokenStr)
+				if err == nil {
+					helper.WriteJSON(w, http.StatusForbidden, map[string]string{
+						"error": "forbidden: already logged in",
+					})
+					return
+				}
+			}
+
+			next.ServeHTTP(w, r)
 		})
 	}
 }
