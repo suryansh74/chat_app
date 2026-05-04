@@ -14,6 +14,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { MessageSquare } from "lucide-react";
 
 export function RegisterPage() {
   const navigate = useNavigate();
@@ -25,8 +26,8 @@ export function RegisterPage() {
     defaultValues: {
       name: "Suryansh Awasthi",
       email: "suryanshawasthi56@gmail.com",
-      password: "Krazymon123#",
-      password_confirmation: "Krazymon123#",
+      password: "Sample123#",
+      password_confirmation: "Sample123#",
     },
   });
 
@@ -53,53 +54,82 @@ export function RegisterPage() {
   };
 
   return (
-    <div className="flex min-h-screen items-center justify-center p-4">
-      <Card className="w-full max-w-md">
-        <CardHeader className="space-y-1">
-          <CardTitle className="text-2xl font-bold">
-            Create an account
-          </CardTitle>
-          <CardDescription>Enter your details to get started</CardDescription>
-        </CardHeader>
-        <FormProvider {...methods}>
-          <form onSubmit={handleSubmit(onSubmit)}>
-            <CardContent className="space-y-4">
-              {errors.root && (
-                <div className="rounded-md bg-destructive/10 p-3 text-sm text-destructive">
-                  {errors.root.message}
-                </div>
-              )}
-              <FormField name="name" label="Name" placeholder="John Doe" />
-              <FormField
-                name="email"
-                label="Email"
-                type="email"
-                placeholder="m@example.com"
-              />
-              <FormField name="password" label="Password" type="password" />
-              <FormField
-                name="password_confirmation"
-                label="Confirm Password"
-                type="password"
-              />
-            </CardContent>
-            <CardFooter className="flex flex-col space-y-4">
-              <Button type="submit" className="w-full" disabled={isSubmitting}>
-                {isSubmitting ? "Creating account..." : "Create account"}
-              </Button>
-              <div className="text-center text-sm">
-                <span className="text-muted-foreground">
+    <div className="min-h-screen flex items-center justify-center px-4 py-12 bg-gradient-to-br from-background via-background to-muted/30">
+      <div className="w-full max-w-md">
+        <div className="flex items-center justify-center gap-2 mb-8">
+          <div className="p-2.5 rounded-xl bg-primary/10">
+            <MessageSquare className="h-8 w-8 text-primary" />
+          </div>
+          <span className="text-2xl font-bold tracking-tight">ChatApp</span>
+        </div>
+        <Card className="border-border/60 shadow-xl shadow-black/5">
+          <CardHeader className="space-y-1 pb-6">
+            <CardTitle className="text-2xl font-bold">
+              Create an account
+            </CardTitle>
+            <CardDescription>Enter your details to get started</CardDescription>
+          </CardHeader>
+          <FormProvider {...methods}>
+            <form onSubmit={handleSubmit(onSubmit)}>
+              <CardContent className="space-y-5">
+                {errors.root && (
+                  <div className="rounded-lg bg-red-500/10 border border-red-500/20 p-3.5 text-sm text-red-500 flex items-center gap-2">
+                    {errors.root.message}
+                  </div>
+                )}
+                <FormField
+                  name="name"
+                  label="Full Name"
+                  placeholder="John Doe"
+                />
+                <FormField
+                  name="email"
+                  label="Email"
+                  type="email"
+                  placeholder="name@example.com"
+                />
+                <FormField
+                  name="password"
+                  label="Password"
+                  type="password"
+                  placeholder="Create a strong password"
+                />
+                <FormField
+                  name="password_confirmation"
+                  label="Confirm Password"
+                  type="password"
+                  placeholder="Confirm your password"
+                />
+              </CardContent>
+              <CardFooter className="flex flex-col gap-4 pt-2">
+                <Button
+                  type="submit"
+                  className="w-full h-11 text-base font-semibold"
+                  disabled={isSubmitting}
+                >
+                  {isSubmitting ? (
+                    <span className="flex items-center gap-2">
+                      <span className="h-4 w-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
+                      Creating account...
+                    </span>
+                  ) : (
+                    "Create account"
+                  )}
+                </Button>
+                <p className="text-center text-sm text-muted-foreground">
                   Already have an account?{" "}
-                </span>
-                <Link to="/login" className="text-primary hover:underline">
-                  Sign in
-                </Link>
-              </div>
-            </CardFooter>
-          </form>
-        </FormProvider>
-      </Card>
+                  <Link
+                    to="/login"
+                    className="font-semibold text-primary hover:text-primary/80 transition-colors"
+                  >
+                    Sign in
+                  </Link>
+                </p>
+              </CardFooter>
+            </form>
+          </FormProvider>
+        </Card>
+      </div>
     </div>
   );
 }
-

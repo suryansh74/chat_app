@@ -1,7 +1,7 @@
 import { useState } from "react"
 import { useFormContext } from "react-hook-form"
 import { cn } from "@/lib/utils"
-import { Eye, EyeOff } from "lucide-react"
+import { Eye, EyeOff, AlertCircle, CheckCircle2 } from "lucide-react"
 
 interface FormFieldProps {
   name: string
@@ -34,14 +34,14 @@ export function FormField({
   const isPassword = type === "password"
 
   return (
-    <div className="space-y-2">
+    <div className="space-y-1.5">
       <label
         htmlFor={name}
-        className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+        className="text-sm font-semibold text-foreground/90 peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
       >
         {label}
       </label>
-      <div className="relative">
+      <div className="relative group">
         <input
           id={name}
           type={isPassword && showPassword ? "text" : type}
@@ -49,17 +49,21 @@ export function FormField({
           disabled={disabled}
           {...register(name)}
           className={cn(
-            "flex h-9 w-full rounded-md border bg-transparent px-3 py-1 text-base shadow-sm transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium file:text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50 md:text-sm pr-10",
-            hasError && "border-destructive focus-visible:ring-destructive",
-            isValid && "border-green-500 focus-visible:ring-green-500",
-            !hasError && !isValid && "border-input"
+            "flex h-11 w-full rounded-lg border bg-background px-4 py-2 text-sm ring-offset-background transition-all duration-200",
+            "placeholder:text-muted-foreground/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2",
+            "disabled:cursor-not-allowed disabled:opacity-50",
+            isPassword && "pr-12",
+            !isPassword && "pr-4",
+            hasError && "border-red-500 focus-visible:ring-red-500 focus-visible:border-red-500",
+            isValid && "border-emerald-500 focus-visible:ring-emerald-500 focus-visible:border-emerald-500",
+            !hasError && !isValid && "border-border hover:border-muted-foreground/30 focus-visible:ring-primary"
           )}
         />
         {isPassword && (
           <button
             type="button"
             onClick={() => setShowPassword(!showPassword)}
-            className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+            className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors p-1 rounded-md hover:bg-muted"
           >
             {showPassword ? (
               <EyeOff className="h-4 w-4" />
@@ -68,9 +72,22 @@ export function FormField({
             )}
           </button>
         )}
+        {!isPassword && hasError && (
+          <div className="absolute right-3 top-1/2 -translate-y-1/2">
+            <AlertCircle className="h-4 w-4 text-red-500" />
+          </div>
+        )}
+        {!isPassword && isValid && (
+          <div className="absolute right-3 top-1/2 -translate-y-1/2">
+            <CheckCircle2 className="h-4 w-4 text-emerald-500" />
+          </div>
+        )}
       </div>
       {hasError && (
-        <p className="text-sm text-destructive">{error}</p>
+        <p className="text-sm font-medium text-red-500 flex items-center gap-1.5 animate-in fade-in slide-in-from-top-1">
+          <AlertCircle className="h-3.5 w-3.5" />
+          {error}
+        </p>
       )}
     </div>
   )
