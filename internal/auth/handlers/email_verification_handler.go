@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"net/http"
 
+	"github.com/suryansh74/chat_app/pkg/logger"
 	"github.com/suryansh74/chat_app/shared/helper"
 	"github.com/suryansh74/chat_app/shared/middleware"
 	"github.com/suryansh74/chat_app/shared/token"
@@ -187,7 +188,7 @@ func (h *EmailVerificationHandler) VerifyOTP(w http.ResponseWriter, r *http.Requ
 		Path:     "/",
 		MaxAge:   h.cookieMaxAge,
 		HttpOnly: true,
-		SameSite: 1,
+		SameSite: 1, // SameSiteLax
 	}
 
 	http.SetCookie(w, httpCookie)
@@ -198,13 +199,18 @@ func (h *EmailVerificationHandler) VerifyOTP(w http.ResponseWriter, r *http.Requ
 }
 
 func (h *EmailVerificationHandler) Verified(w http.ResponseWriter, r *http.Request) {
+	logger.Log.Info("EmailVerificationHandler.Verified: called")
+
 	payload, ok := r.Context().Value(middleware.UserContextKey).(*token.Payload)
 	if !ok {
+		logger.Log.Error("EmailVerificationHandler.Verified: no payload in context")
 		helper.WriteJSON(w, http.StatusUnauthorized, map[string]string{
 			"error": "unauthorized",
 		})
 		return
 	}
+
+	logger.Log.Info("EmailVerificationHandler.Verified: returning verified status", "verified", payload.User.IsVerified, "email", payload.User.Email)
 
 	helper.WriteJSON(w, http.StatusOK, map[string]bool{
 		"verified": payload.User.IsVerified,

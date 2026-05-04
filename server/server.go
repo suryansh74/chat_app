@@ -11,6 +11,8 @@ import (
 	"github.com/suryansh74/chat_app/pkg/logger"
 	"github.com/suryansh74/chat_app/shared/email"
 	"github.com/suryansh74/chat_app/shared/token"
+	"gorm.io/driver/mysql"
+	"gorm.io/gorm"
 )
 
 type server struct {
@@ -23,7 +25,29 @@ type server struct {
 }
 
 func NewServer(cfg *config.Config) *server {
-	repo := authrepositories.NewInMemoryUserRepository()
+	// Connect to MySQL
+	dsn := authrepositories.GetDSN(
+		cfg.MySQLHost,
+		cfg.MySQLPort,
+		cfg.MySQLUser,
+		cfg.MySQLPassword,
+		cfg.MySQLDatabase,
+	)
+
+	logger.Log.Info("Connecting to MySQL...", "dsn", dsn)
+
+	db, err := gorm.Open(mysql.Open(dsn), &gorm.Config{})
+	if err != nil {
+		logger.Log.Fatal("Failed to connect to MySQL", "error", err)
+	}
+
+	// Auto migrate the database
+	if err := authrepositories.AutoMigrate(db); err != nil {
+		logger.Log.Fatal("Failed to migrate database", "error", err)
+	}
+	logger.Log.Info("Database migrated successfully")
+
+	repo := authrepositories.NewMySQLUserRepository(db)
 	service := authservices.NewAuthService(repo)
 	tokenMaker, _ := token.NewPasetoMaker(cfg.TokenSymmetricKey)
 	authHandler := handlers.NewAuthHandler(service, tokenMaker, cfg.CookieMaxAge, cfg.CookieSameSite)
@@ -43,7 +67,27 @@ func NewServer(cfg *config.Config) *server {
 	}
 }
 
+func (s *server) CORS(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		logger.Log.Info("CORS middleware", "method", r.Method, "url", r.URL.Path, "origin", r.Header.Get("Origin"))
+
+		w.Header().Set("Access-Control-Allow-Origin", "http://localhost:5173")
+		w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
+		w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Cookie")
+		w.Header().Set("Access-Control-Allow-Credentials", "true")
+
+		if r.Method == "OPTIONS" {
+			logger.Log.Info("CORS preflight handled", "url", r.URL.Path)
+			w.WriteHeader(http.StatusOK)
+			return
+		}
+
+		next.ServeHTTP(w, r)
+	})
+}
+
 func (s *server) Run() error {
+	logger.Log.Info("Setting up routes...")
 	s.setupRoutes()
 
 	addr := s.cfg.Host + ":" + s.cfg.Port

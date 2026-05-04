@@ -11,6 +11,7 @@ import (
 	"github.com/suryansh74/chat_app/internal/auth/apperr"
 	authdomain "github.com/suryansh74/chat_app/internal/auth/domain"
 	authservices "github.com/suryansh74/chat_app/internal/auth/services"
+	"github.com/suryansh74/chat_app/pkg/logger"
 	"github.com/suryansh74/chat_app/shared/helper"
 	"github.com/suryansh74/chat_app/shared/middleware"
 	"github.com/suryansh74/chat_app/shared/token"
@@ -123,16 +124,19 @@ func (h *AuthHandler) Register(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	logger.Log.Info("Register: setting cookie", "token_length", len(accessToken), "maxAge", h.cookieMaxAge)
+
 	httpCookie := &http.Cookie{
 		Name:     "session_token",
 		Value:    accessToken,
 		Path:     "/",
 		MaxAge:   h.cookieMaxAge,
 		HttpOnly: true,
-		SameSite: 1,
+		SameSite: 1, // SameSiteLax - works for localhost
 	}
 
 	http.SetCookie(w, httpCookie)
+	logger.Log.Info("Register: cookie set", "cookie_name", httpCookie.Name)
 
 	helper.WriteJSON(w, http.StatusCreated, map[string]string{
 		"message": "user registered successfully",
@@ -214,10 +218,11 @@ func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 		Path:     "/",
 		MaxAge:   h.cookieMaxAge,
 		HttpOnly: true,
-		SameSite: 1,
+		SameSite: 1, // SameSiteLax
 	}
 
 	http.SetCookie(w, httpCookie)
+	logger.Log.Info("Login: cookie set", "cookie_name", httpCookie.Name)
 
 	helper.WriteJSON(w, http.StatusOK, map[string]string{
 		"message": "user logged in successfully",
@@ -256,7 +261,7 @@ func (h *AuthHandler) Logout(w http.ResponseWriter, r *http.Request) {
 		Path:     "/",
 		MaxAge:   -1,
 		HttpOnly: true,
-		SameSite: 1,
+		SameSite: 1, // SameSiteLax
 	}
 
 	http.SetCookie(w, httpCookie)

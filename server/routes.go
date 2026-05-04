@@ -11,21 +11,28 @@ import (
 )
 
 func (s *server) setupRoutes() {
+	logger.Log.Info("Setting up CORS middleware...")
+	s.router.Use(s.CORS)
+
 	s.router.Use(middleware.Logger)
 	s.router.Use(middleware.Recoverer)
 	s.router.Route("/api", func(r chi.Router) {
 		r.Get("/check_health", checkHealth)
 
-		r.Route("/auth", func(r chi.Router) {
-			r.Use(authmiddleware.GuestMiddleware(s.tokenMaker))
-			r.Post("/register", s.authHandler.Register)
-			r.Post("/login", s.authHandler.Login)
+		r.Group(func(guest chi.Router) {
+			guest.Use(authmiddleware.GuestMiddleware(s.tokenMaker))
+			guest.Post("/auth/register", s.authHandler.Register)
+			guest.Post("/auth/login", s.authHandler.Login)
+		})
+
+		r.Group(func(protected chi.Router) {
+			protected.Use(authmiddleware.AuthMiddleware(s.tokenMaker))
+			protected.Post("/auth/logout", s.authHandler.Logout)
 		})
 
 		r.Group(func(protected chi.Router) {
 			protected.Use(authmiddleware.AuthMiddleware(s.tokenMaker))
 			protected.Get("/profile", s.authHandler.Profile)
-			protected.Post("/logout", s.authHandler.Logout)
 		})
 
 		r.Group(func(emailVerified chi.Router) {

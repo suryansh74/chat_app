@@ -24,6 +24,12 @@ type Config struct {
 	OtpExpiryMinutes         int    `mapstructure:"OTP_EXPIRY_MINUTES"`
 	OtpMaxAttempts           int    `mapstructure:"OTP_MAX_ATTEMPTS"`
 	PasswordResetRedirectURL string `mapstructure:"PASSWORD_RESET_REDIRECT_URL"`
+
+	MySQLHost     string `mapstructure:"MYSQL_HOST"`
+	MySQLPort     string `mapstructure:"MYSQL_PORT"`
+	MySQLUser     string `mapstructure:"MYSQL_USER"`
+	MySQLPassword string `mapstructure:"MYSQL_PASSWORD"`
+	MySQLDatabase string `mapstructure:"MYSQL_DATABASE"`
 }
 
 func LoadConfig() (config Config, err error) {
