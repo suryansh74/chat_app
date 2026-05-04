@@ -5,6 +5,7 @@ import { authApi } from "@/lib/api"
 import { forgotPasswordSchema, type ForgotPasswordInput } from "@/lib/schemas"
 import { Button } from "@/components/ui/button"
 import { FormField } from "@/components/FormField"
+import { toast } from "sonner"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 
 export function ForgotPasswordPage() {
@@ -24,10 +25,12 @@ export function ForgotPasswordPage() {
     const { error } = await authApi.forgotPassword(data.email)
 
     if (error) {
+      toast.error(error)
       return
     }
 
-    navigate("/verify-otp?mode=password-reset")
+    toast.success("OTP sent to your email!")
+    navigate(`/verify-otp?mode=password-reset&email=${encodeURIComponent(data.email)}`)
   }
 
   return (

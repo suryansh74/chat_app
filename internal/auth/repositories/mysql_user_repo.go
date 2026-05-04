@@ -68,7 +68,7 @@ func (r *MySQLUserRepository) GetUserByEmail(email string) (*authdomain.User, er
 	err := r.db.Where("email = ?", email).First(&userModel).Error
 	if err != nil {
 		if err == gorm.ErrRecordNotFound {
-			return nil, nil
+			return nil, fmt.Errorf("record not found")
 		}
 		return nil, err
 	}

@@ -2,15 +2,12 @@ package handlers
 
 import (
 	"encoding/json"
-	"fmt"
 	"net/http"
 	"strings"
-	"time"
 	"unicode"
 
 	authservices "github.com/suryansh74/chat_app/internal/auth/services"
 	"github.com/suryansh74/chat_app/shared/helper"
-	"github.com/suryansh74/chat_app/shared/middleware"
 	"github.com/suryansh74/chat_app/shared/token"
 )
 
@@ -31,16 +28,31 @@ func NewPasswordResetHandler(service authservices.EmailVerificationServicePort, 
 }
 
 func (h *PasswordResetHandler) SendOTP(w http.ResponseWriter, r *http.Request) {
-	payload, ok := r.Context().Value(middleware.UserContextKey).(*token.Payload)
-	if !ok {
-		helper.WriteJSON(w, http.StatusUnauthorized, map[string]string{
-			"error": "unauthorized",
+	var input struct {
+		Email string `json:"email"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&input); err != nil {
+		helper.WriteJSON(w, http.StatusBadRequest, map[string]string{
+			"error": "invalid request body",
 		})
 		return
 	}
 
-	otp, err := h.service.SendPasswordResetOTP(payload.User.Email)
+	if input.Email == "" {
+		helper.WriteJSON(w, http.StatusBadRequest, map[string]string{
+			"error": "email is required",
+		})
+		return
+	}
+
+	otp, err := h.service.SendPasswordResetOTP(input.Email)
 	if err != nil {
+		if err.Error() == "record not found" {
+			helper.WriteJSON(w, http.StatusNotFound, map[string]string{
+				"error": "email not found",
+			})
+			return
+		}
 		helper.WriteJSON(w, http.StatusInternalServerError, map[string]string{
 			"error": "failed to send OTP",
 		})
@@ -50,7 +62,7 @@ func (h *PasswordResetHandler) SendOTP(w http.ResponseWriter, r *http.Request) {
 	subject := "Your Password Reset OTP"
 	body := "Your password reset code is: " + otp + ". This code will expire in 5 minutes."
 
-	if err := h.emailSender.SendEmail(payload.User.Email, subject, body); err != nil {
+	if err := h.emailSender.SendEmail(input.Email, subject, body); err != nil {
 		helper.WriteJSON(w, http.StatusInternalServerError, map[string]string{
 			"error": "failed to send email",
 		})
@@ -63,78 +75,33 @@ func (h *PasswordResetHandler) SendOTP(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *PasswordResetHandler) VerifyOTP(w http.ResponseWriter, r *http.Request) {
-	payload, ok := r.Context().Value(middleware.UserContextKey).(*token.Payload)
-	if !ok {
-		helper.WriteJSON(w, http.StatusUnauthorized, map[string]string{
-			"error": "unauthorized",
-		})
-		return
+	var input struct {
+		Email string `json:"email"`
+		OTP   string `json:"otp"`
 	}
-
-	var rawInput map[string]interface{}
-	if err := json.NewDecoder(r.Body).Decode(&rawInput); err != nil {
+	if err := json.NewDecoder(r.Body).Decode(&input); err != nil {
 		helper.WriteJSON(w, http.StatusBadRequest, map[string]string{
 			"error": "invalid request body",
 		})
 		return
 	}
 
-	otpValue, exists := rawInput["otp"]
-	if !exists {
-		helper.WriteJSON(w, http.StatusBadRequest, map[string]interface{}{
-			"errors": []map[string]string{
-				{
-					"field":   "otp",
-					"message": "otp is required",
-				},
-			},
+	if input.Email == "" || input.OTP == "" {
+		helper.WriteJSON(w, http.StatusBadRequest, map[string]string{
+			"error": "email and OTP are required",
 		})
 		return
 	}
 
-	var otp string
-	switch v := otpValue.(type) {
-	case string:
-		otp = v
-	case float64:
-		otp = fmt.Sprintf("%.0f", v)
-	default:
-		helper.WriteJSON(w, http.StatusBadRequest, map[string]interface{}{
-			"errors": []map[string]string{
-				{
-					"field":   "otp",
-					"message": "otp must be a string or number",
-				},
-			},
-		})
-		return
-	}
-
-	if otp == "" {
-		helper.WriteJSON(w, http.StatusBadRequest, map[string]interface{}{
-			"errors": []map[string]string{
-				{
-					"field":   "otp",
-					"message": "otp is required",
-				},
-			},
-		})
-		return
-	}
-
+	otp := input.OTP
 	if len(otp) != 6 || !isNumeric(otp) {
-		helper.WriteJSON(w, http.StatusBadRequest, map[string]interface{}{
-			"errors": []map[string]string{
-				{
-					"field":   "otp",
-					"message": "otp must be exactly 6 digits",
-				},
-			},
+		helper.WriteJSON(w, http.StatusBadRequest, map[string]string{
+			"error": "otp must be exactly 6 digits",
 		})
 		return
 	}
 
-	if err := h.service.VerifyPasswordResetOTP(payload.User.Email, otp); err != nil {
+	if err := h.service.VerifyPasswordResetOTP(input.Email, otp); err != nil {
 		if err == authservices.ErrInvalidResetToken {
 			helper.WriteJSON(w, http.StatusBadRequest, map[string]string{
 				"error": "invalid OTP",
@@ -159,65 +126,33 @@ func (h *PasswordResetHandler) VerifyOTP(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	resetToken, err := h.tokenMaker.CreateToken(&token.TokenUser{
-		ID:    payload.User.ID,
-		Email: payload.User.Email,
-	}, 5*time.Minute)
-	if err != nil {
-		helper.WriteJSON(w, http.StatusInternalServerError, map[string]string{
-			"error": "failed to generate reset token",
-		})
-		return
-	}
-
 	helper.WriteJSON(w, http.StatusOK, map[string]string{
-		"redirect":    h.redirectURL,
-		"reset_token": resetToken,
+		"message": "OTP verified successfully",
 	})
 }
 
 func (h *PasswordResetHandler) SetPassword(w http.ResponseWriter, r *http.Request) {
-	rawInput := make(map[string]interface{})
-	if err := json.NewDecoder(r.Body).Decode(&rawInput); err != nil {
+	var input struct {
+		Email                string `json:"email"`
+		Password             string `json:"password"`
+		PasswordConfirmation string `json:"password_confirmation"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&input); err != nil {
 		helper.WriteJSON(w, http.StatusBadRequest, map[string]string{
 			"error": "invalid request body",
 		})
 		return
 	}
 
-	resetToken, ok := rawInput["reset_token"].(string)
-	if !ok || resetToken == "" {
+	if input.Email == "" {
 		helper.WriteJSON(w, http.StatusBadRequest, map[string]string{
-			"error": "reset token is required",
+			"error": "email is required",
 		})
 		return
 	}
 
-	tokenPayload, err := h.tokenMaker.VerifyToken(resetToken)
-	if err != nil {
-		helper.WriteJSON(w, http.StatusBadRequest, map[string]string{
-			"error": "invalid or expired reset token",
-		})
-		return
-	}
-
-	payload, ok := r.Context().Value(middleware.UserContextKey).(*token.Payload)
-	if !ok {
-		helper.WriteJSON(w, http.StatusUnauthorized, map[string]string{
-			"error": "unauthorized",
-		})
-		return
-	}
-
-	if tokenPayload.User.ID != payload.User.ID || tokenPayload.User.Email != payload.User.Email {
-		helper.WriteJSON(w, http.StatusBadRequest, map[string]string{
-			"error": "invalid reset token",
-		})
-		return
-	}
-
-	password, _ := rawInput["password"].(string)
-	passwordConfirmation, _ := rawInput["password_confirmation"].(string)
+	password := input.Password
+	passwordConfirmation := input.PasswordConfirmation
 
 	if password == "" || passwordConfirmation == "" {
 		var errors []map[string]string
@@ -274,7 +209,7 @@ func (h *PasswordResetHandler) SetPassword(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
-	if err := h.service.SetPassword(payload.User.Email, password); err != nil {
+	if err := h.service.SetPassword(input.Email, password); err != nil {
 		helper.WriteJSON(w, http.StatusInternalServerError, map[string]string{
 			"error": "failed to set password",
 		})

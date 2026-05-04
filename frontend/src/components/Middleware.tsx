@@ -72,7 +72,7 @@ export function VerifiedMiddleware({ children, redirectTo = "/home" }: VerifiedM
   return <>{children}</>
 }
 
-export function UnverifiedMiddleware({ children, redirectTo = "/home" }: VerifiedMiddlewareProps) {
+export function UnverifiedMiddleware({ children }: VerifiedMiddlewareProps) {
   const { user, isVerified, isLoading } = useAuth()
 
   if (isLoading) {

@@ -17,11 +17,11 @@ export function ProtectedRoute({ children, requireVerified = true }: ProtectedRo
     )
   }
 
-  if (!user) {
+  if (!user && requireVerified) {
     return <Navigate to="/login" replace />
   }
 
-  if (requireVerified && !isVerified) {
+  if (requireVerified && user && !isVerified) {
     return <Navigate to="/verify-email" replace />
   }
 

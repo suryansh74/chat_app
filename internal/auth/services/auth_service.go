@@ -8,6 +8,7 @@ import (
 	apperr "github.com/suryansh74/chat_app/internal/auth/apperr"
 	authdomain "github.com/suryansh74/chat_app/internal/auth/domain"
 	"github.com/suryansh74/chat_app/internal/auth/repositories"
+	"github.com/suryansh74/chat_app/pkg/logger"
 	"golang.org/x/crypto/bcrypt"
 )
 
@@ -75,10 +76,17 @@ func (s *AuthService) Login(input *authdomain.LoginInput) (*authdomain.User, err
 
 	user, err := s.repo.GetUserByEmail(input.Email)
 	if err != nil {
+		logger.Log.Warn("Login: user not found", "email", input.Email, "error", err.Error())
+		return nil, ErrInvalidCredentials
+	}
+
+	if user == nil {
+		logger.Log.Warn("Login: user is nil after search", "email", input.Email)
 		return nil, ErrInvalidCredentials
 	}
 
 	if err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(input.Password)); err != nil {
+		logger.Log.Warn("Login: password mismatch", "email", input.Email)
 		return nil, ErrInvalidCredentials
 	}
 

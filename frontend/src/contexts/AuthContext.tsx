@@ -19,14 +19,14 @@ interface AuthContextType {
   isVerified: boolean
   isLoading: boolean
   checkAuth: () => Promise<void>
-  login: (email: string, password: string, rememberMe?: boolean) => Promise<{ error?: string }>
+  login: (email: string, password: string, rememberMe?: boolean) => Promise<{ error?: string; success?: string }>
   register: (
     name: string,
     email: string,
     password: string,
     passwordConfirmation: string
-  ) => Promise<{ error?: string }>
-  logout: () => Promise<void>
+  ) => Promise<{ error?: string; success?: string }>
+  logout: () => Promise<{ error?: string; success?: string }>
   setUser: (user: User | null) => void
   setIsVerified: (verified: boolean) => void
 }
@@ -81,12 +81,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     email: string,
     password: string,
     rememberMe?: boolean
-  ): Promise<{ error?: string }> => {
-    const { error } = await authApi.login({ email, password, remember_me: rememberMe })
+  ): Promise<{ error?: string; success?: string }> => {
+    const { error, success } = await authApi.login({ email, password, remember_me: rememberMe })
     if (error) return { error }
 
     await checkAuth()
-    return {}
+    return { success }
   }
 
   const register = async (
@@ -94,8 +94,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     email: string,
     password: string,
     passwordConfirmation: string
-  ): Promise<{ error?: string }> => {
-    const { error } = await authApi.register({
+  ): Promise<{ error?: string; success?: string }> => {
+    const { error, success } = await authApi.register({
       name,
       email,
       password,
@@ -104,13 +104,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (error) return { error }
 
     await checkAuth()
-    return {}
+    return { success }
   }
 
-  const logout = async () => {
-    await authApi.logout()
+  const logout = async (): Promise<{ error?: string; success?: string }> => {
+    const { error, success } = await authApi.logout()
     setUser(null)
     setIsVerified(false)
+    return { error, success }
   }
 
   return (

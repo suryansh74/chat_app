@@ -2,6 +2,7 @@ import { useAuth } from "@/contexts/AuthContext"
 import { useTheme } from "@/contexts/ThemeContext"
 import { Button } from "@/components/ui/button"
 import { Moon, Sun } from "lucide-react"
+import { toast } from "sonner"
 
 export function Navbar() {
   const { user, logout } = useAuth()
@@ -9,11 +10,18 @@ export function Navbar() {
 
   const handleLogout = async () => {
     console.log("[Navbar] Calling logout...")
-    await logout()
-    // Clear cookie manually as fallback
-    document.cookie = "session_token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT"
-    console.log("[Navbar] Logout complete, cookie cleared")
-    window.location.href = "/login"
+    const result = await logout()
+    
+    if (result.error) {
+      toast.error(result.error)
+      return
+    }
+
+    if (result.success) {
+      toast.success(result.success)
+    }
+    
+    console.log("[Navbar] Logout complete")
   }
 
   const toggleTheme = () => {

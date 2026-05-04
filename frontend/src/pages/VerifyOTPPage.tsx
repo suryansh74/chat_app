@@ -5,6 +5,7 @@ import { authApi } from "@/lib/api"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { toast } from "sonner"
 
 type Mode = "email-verification" | "password-reset"
 
@@ -12,13 +13,12 @@ export function VerifyOTPPage() {
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
   const mode = (searchParams.get("mode") as Mode) || "email-verification"
+  const email = searchParams.get("email") || ""
   
   const { checkAuth } = useAuth()
   const [otp, setOtp] = useState(["", "", "", "", "", ""])
   const inputRefs = useRef<(HTMLInputElement | null)[]>([])
   const [isLoading, setIsLoading] = useState(false)
-  const [error, setError] = useState("")
-  const [success, setSuccess] = useState(false)
 
   useEffect(() => {
     if (inputRefs.current[0]) {
@@ -58,32 +58,31 @@ export function VerifyOTPPage() {
   const handleVerify = async () => {
     const otpValue = otp.join("")
     if (otpValue.length !== 6) {
-      setError("Please enter all 6 digits")
+      toast.error("Please enter all 6 digits")
       return
     }
 
     setIsLoading(true)
-    setError("")
 
     if (mode === "password-reset") {
-      const { error: verifyError } = await authApi.verifyResetOTP(otpValue)
-      if (verifyError) {
-        setError(verifyError)
+      const { error } = await authApi.verifyResetOTP(email, otpValue)
+      if (error) {
+        toast.error(error)
         setIsLoading(false)
         return
       }
-      navigate("/reset-password")
+      navigate(`/reset-password?email=${encodeURIComponent(email)}`)
       return
     }
 
-    const { error: verifyError } = await authApi.verifyOTP(otpValue)
-    if (verifyError) {
-      setError(verifyError)
+    const { error } = await authApi.verifyOTP(otpValue)
+    if (error) {
+      toast.error(error)
       setIsLoading(false)
       return
     }
 
-    setSuccess(true)
+    toast.success("Email verified successfully!")
     setIsLoading(false)
     
     await checkAuth()
@@ -106,18 +105,6 @@ export function VerifyOTPPage() {
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          {error && (
-            <div className="rounded-md bg-destructive/10 p-3 text-sm text-destructive">
-              {error}
-            </div>
-          )}
-
-          {success && (
-            <div className="rounded-md bg-green-500/10 p-3 text-sm text-green-600 dark:text-green-400">
-              Email verified successfully!
-            </div>
-          )}
-
           <div className="flex justify-center gap-2" onPaste={handlePaste}>
             {otp.map((digit, index) => (
               <Input

@@ -1,14 +1,17 @@
 import { useForm, FormProvider } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
-import { useNavigate, Link } from "react-router"
+import { useNavigate, Link, useSearchParams } from "react-router"
 import { authApi } from "@/lib/api"
 import { resetPasswordSchema, type ResetPasswordInput } from "@/lib/schemas"
 import { Button } from "@/components/ui/button"
 import { FormField } from "@/components/FormField"
+import { toast } from "sonner"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 
 export function ResetPasswordPage() {
   const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
+  const email = searchParams.get("email") || ""
 
   const methods = useForm<ResetPasswordInput>({
     resolver: zodResolver(resetPasswordSchema),
@@ -21,12 +24,14 @@ export function ResetPasswordPage() {
   } = methods
 
   const onSubmit = async (data: ResetPasswordInput) => {
-    const { error } = await authApi.resetPassword(data.password, data.password_confirmation)
+    const { error } = await authApi.resetPassword(email, data.password, data.password_confirmation)
 
     if (error) {
+      toast.error(error)
       return
     }
 
+    toast.success("Password reset successfully!")
     navigate("/login")
   }
 

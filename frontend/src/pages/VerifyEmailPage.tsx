@@ -4,28 +4,25 @@ import { useAuth } from "@/contexts/AuthContext"
 import { authApi } from "@/lib/api"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { toast } from "sonner"
 
 export function VerifyEmailPage() {
   const navigate = useNavigate()
   const { user } = useAuth()
   const [isLoading, setIsLoading] = useState(false)
-  const [message, setMessage] = useState("")
-  const [error, setError] = useState("")
 
   const handleSendOTP = async () => {
     setIsLoading(true)
-    setMessage("")
-    setError("")
 
-    const { error: apiError } = await authApi.sendOTP()
+    const { error } = await authApi.sendOTP()
 
-    if (apiError) {
-      setError(apiError)
+    if (error) {
+      toast.error(error)
       setIsLoading(false)
       return
     }
 
-    setMessage("OTP sent to your email!")
+    toast.success("OTP sent to your email!")
     setIsLoading(false)
     navigate("/verify-otp")
   }
@@ -48,18 +45,6 @@ export function VerifyEmailPage() {
             <p className="text-sm text-muted-foreground">Your email address</p>
             <p className="font-medium">{user.email}</p>
           </div>
-
-          {error && (
-            <div className="rounded-md bg-destructive/10 p-3 text-sm text-destructive">
-              {error}
-            </div>
-          )}
-
-          {message && (
-            <div className="rounded-md bg-green-500/10 p-3 text-sm text-green-600 dark:text-green-400">
-              {message}
-            </div>
-          )}
 
           <Button onClick={handleSendOTP} className="w-full" disabled={isLoading}>
             {isLoading ? "Sending OTP..." : "Send OTP"}

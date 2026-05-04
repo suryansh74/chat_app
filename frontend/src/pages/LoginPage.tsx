@@ -5,6 +5,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { loginSchema, type LoginInput } from "@/lib/schemas";
 import { Button } from "@/components/ui/button";
 import { FormField } from "@/components/FormField";
+import { toast } from "sonner";
 import {
   Card,
   CardContent,
@@ -38,7 +39,12 @@ export function LoginPage() {
     const result = await login(data.email, data.password, data.remember_me);
 
     if (result.error) {
+      toast.error(result.error);
       return;
+    }
+
+    if (result.success) {
+      toast.success(result.success);
     }
 
     navigate("/home");

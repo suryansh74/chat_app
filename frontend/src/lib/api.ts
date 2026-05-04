@@ -3,6 +3,7 @@ const API_BASE_URL = "http://localhost:8000/api";
 interface ApiResponse<T> {
   data?: T;
   error?: string;
+  success?: string;
 }
 
 async function request<T>(
@@ -48,14 +49,18 @@ async function request<T>(
     console.log(`[API] Response ${response.status}:`, data);
 
     if (!response.ok) {
-      console.error(`[API] Error ${response.status}:`, data.error || data.message);
-      return { error: data.error || data.message || "An error occurred" };
+      const errorMsg = data.data?.error || data.error || data.message || "An error occurred";
+      console.error(`[API] Error ${response.status}:`, errorMsg);
+      return { error: errorMsg };
     }
 
     // Backend wraps responses in "data" key, so extract it
     const extractedData = data.data !== undefined ? data.data : data;
     console.log(`[API] Extracted data:`, extractedData);
-    return { data: extractedData };
+    
+    // Check for success message in response
+    const successMessage = extractedData?.message;
+    return { data: extractedData, success: successMessage };
   } catch (err) {
     console.error("[API] Network error:", err);
     return { error: "Network error" };
@@ -104,11 +109,12 @@ export const authApi = {
   forgotPassword: (email: string) =>
     api.post<{ message: string }>("/password_reset/send_otp", { email }),
 
-  verifyResetOTP: (otp: string) =>
-    api.post<{ message: string }>("/password_reset/verify_otp", { otp }),
+  verifyResetOTP: (email: string, otp: string) =>
+    api.post<{ message: string }>("/password_reset/verify_otp", { email, otp }),
 
-  resetPassword: (password: string, password_confirmation: string) =>
+  resetPassword: (email: string, password: string, password_confirmation: string) =>
     api.post<{ message: string }>("/password_reset/set_password", {
+      email,
       password,
       password_confirmation,
     }),

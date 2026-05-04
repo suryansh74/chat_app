@@ -5,6 +5,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { registerSchema, type RegisterInput } from "@/lib/schemas";
 import { Button } from "@/components/ui/button";
 import { FormField } from "@/components/FormField";
+import { toast } from "sonner";
 import {
   Card,
   CardContent,
@@ -43,9 +44,11 @@ export function RegisterPage() {
     );
 
     if (result.error) {
+      toast.error(result.error);
       return;
     }
 
+    toast.success("Account created! Please verify your email.");
     navigate("/verify-email");
   };
 
