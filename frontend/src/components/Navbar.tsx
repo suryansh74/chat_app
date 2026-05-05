@@ -1,112 +1,82 @@
 import { useAuth } from "@/contexts/AuthContext"
 import { useTheme } from "@/contexts/ThemeContext"
+import { useWebSocket } from "@/contexts/WebSocketContext"
 import { Button } from "@/components/ui/button"
 import { Moon, Sun, UserPlus, Bell } from "lucide-react"
 import { toast } from "sonner"
-import { notificationApi, createWebSocket } from "@/lib/api"
-import { useState, useEffect, useRef } from "react"
+import { notificationApi } from "@/lib/api"
+import { useState, useEffect, useCallback } from "react"
 
 interface NavbarProps {
+  notificationRefreshKey?: number
   onOpenFriendRequest?: () => void
   onOpenNotifications?: () => void
   onNotificationCountChange?: (count: number) => void
   onNotificationHandled?: () => void
 }
 
-export function Navbar({ onOpenFriendRequest, onOpenNotifications, onNotificationCountChange, onNotificationHandled }: NavbarProps) {
+export function Navbar({ notificationRefreshKey, onOpenFriendRequest, onOpenNotifications, onNotificationCountChange }: NavbarProps) {
   const { user, logout } = useAuth()
   const { resolvedTheme, setTheme } = useTheme()
+  const { subscribe, unsubscribe } = useWebSocket()
   const [unreadCount, setUnreadCount] = useState(0)
-  const wsRef = useRef<WebSocket | null>(null)
-  const initializedRef = useRef(false)
 
-  const loadUnreadCount = async () => {
+  const loadUnreadCount = useCallback(async () => {
     if (!user?.id) return
     const { data } = await notificationApi.getUnreadCount()
     if (data) {
       setUnreadCount(data.unread_count)
       onNotificationCountChange?.(data.unread_count)
     }
-  }
+  }, [user?.id, onNotificationCountChange])
 
   useEffect(() => {
-    if (!user?.id || initializedRef.current) return
-
-    initializedRef.current = true
-
-    // Load initial count
     loadUnreadCount()
+  }, [loadUnreadCount])
 
-    // Connect to WebSocket for real-time notifications
-    const ws = createWebSocket(user.id)
-    wsRef.current = ws
+  useEffect(() => {
+    loadUnreadCount()
+  }, [notificationRefreshKey])
 
-    ws.onopen = () => {
-      console.log("[Navbar] WebSocket connected")
+  useEffect(() => {
+    const handleNotification = (data: unknown) => {
+      const d = data as { data: { content: string } }
+      toast.info(d.data.content)
+      setUnreadCount(prev => {
+        onNotificationCountChange?.(prev + 1)
+        return prev + 1
+      })
     }
 
-    ws.onmessage = (event) => {
-      try {
-        const data = JSON.parse(event.data)
-        console.log("[Navbar] WebSocket message:", data)
-        
-        if (data.type === "new_notification") {
-          toast.info(data.data.content)
-          setUnreadCount(prev => prev + 1)
-          onNotificationCountChange?.(unreadCount + 1)
-        } else if (data.type === "new_friend") {
-          toast.success(data.data.content)
-          loadUnreadCount()
-        }
-      } catch (e) {
-        console.error("[Navbar] Failed to parse WS message:", e)
-      }
+    subscribe("new_notification", handleNotification)
+    return () => unsubscribe("new_notification", handleNotification)
+  }, [subscribe, unsubscribe, onNotificationCountChange])
+
+  useEffect(() => {
+    const handleNewFriend = () => {
+      toast.success("New friend added!")
+      loadUnreadCount()
     }
 
-    ws.onerror = (error) => {
-      console.error("[Navbar] WebSocket error:", error)
-    }
-
-    ws.onclose = () => {
-      console.log("[Navbar] WebSocket closed")
-      wsRef.current = null
-    }
-
-    return () => {
-      initializedRef.current = false
-      if (wsRef.current) {
-        wsRef.current.close()
-        wsRef.current = null
-      }
-    }
-  }, [user?.id])
+    subscribe("new_friend", handleNewFriend)
+    return () => unsubscribe("new_friend", handleNewFriend)
+  }, [subscribe, unsubscribe, loadUnreadCount])
 
   const handleNotificationsClick = async () => {
+    setUnreadCount(0)
+    await notificationApi.markAllAsRead()
     onOpenNotifications?.()
-    loadUnreadCount()
-    onNotificationHandled?.()
   }
 
   const handleLogout = async () => {
-    console.log("[Navbar] Calling logout...")
-    
-    if (wsRef.current) {
-      wsRef.current.close()
-      wsRef.current = null
-    }
-    
     const result = await logout()
-    
     if (result.error) {
       toast.error(result.error)
       return
     }
-
     if (result.success) {
       toast.success(result.success)
     }
-    
-    console.log("[Navbar] Logout complete")
   }
 
   const toggleTheme = () => {
@@ -127,11 +97,11 @@ export function Navbar({ onOpenFriendRequest, onOpenNotifications, onNotificatio
         )}
 
         {onOpenNotifications && (
-          <Button 
-            variant="ghost" 
-            size="icon" 
-            onClick={handleNotificationsClick} 
-            title="Notifications" 
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={handleNotificationsClick}
+            title="Notifications"
             className="relative"
           >
             <Bell className="h-5 w-5" />

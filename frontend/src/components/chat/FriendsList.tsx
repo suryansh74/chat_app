@@ -1,5 +1,8 @@
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback, useRef } from "react"
+import { MoreVertical, Trash2 } from "lucide-react"
 import { friendsApi, type FriendListItem } from "@/lib/api"
+import { useWebSocket } from "@/contexts/WebSocketContext"
+import { toast } from "sonner"
 
 interface FriendsListProps {
   onSelectFriend: (friend: FriendListItem) => void
@@ -7,21 +10,113 @@ interface FriendsListProps {
 }
 
 export function FriendsList({ onSelectFriend, selectedFriendId }: FriendsListProps) {
+  const { subscribe, unsubscribe } = useWebSocket()
   const [friends, setFriends] = useState<FriendListItem[]>([])
   const [loading, setLoading] = useState(true)
+  const [openMenuId, setOpenMenuId] = useState<string | null>(null)
+  const [confirmUnfriendId, setConfirmUnfriendId] = useState<string | null>(null)
+  const menuRef = useRef<HTMLDivElement>(null)
 
-  const loadFriends = async () => {
+  const loadFriends = useCallback(async () => {
     setLoading(true)
     const { data } = await friendsApi.getFriends()
     if (data?.friends) {
       setFriends(data.friends)
     }
     setLoading(false)
-  }
+  }, [])
 
   useEffect(() => {
     loadFriends()
+  }, [loadFriends])
+
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
+        setOpenMenuId(null)
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside)
+    return () => document.removeEventListener("mousedown", handleClickOutside)
   }, [])
+
+  useEffect(() => {
+    const handleNewFriend = () => {
+      loadFriends()
+    }
+
+    subscribe("new_friend", handleNewFriend)
+    return () => unsubscribe("new_friend", handleNewFriend)
+  }, [subscribe, unsubscribe, loadFriends])
+
+  useEffect(() => {
+    const handleFriendRemoved = (data: unknown) => {
+      const d = data as { message: { user_id: string } }
+      setFriends((prev) => prev.filter((f) => f.friend_id !== d.message.user_id))
+    }
+
+    subscribe("friend_removed", handleFriendRemoved)
+    return () => unsubscribe("friend_removed", handleFriendRemoved)
+  }, [subscribe, unsubscribe])
+
+  useEffect(() => {
+    const handleNewMessage = (data: unknown) => {
+      const msgData = data as { message: { from_user_id: string; to_user_id: string; content: string; created_at: string } }
+      const msg = msgData.message
+
+      setFriends((prev) => {
+        return prev.map((friend) => {
+          const isFromThisFriend = friend.friend_id === msg.from_user_id
+          const isToThisFriend = friend.friend_id === msg.to_user_id
+
+          if (isFromThisFriend) {
+            const shouldIncrement = friend.friend_id !== selectedFriendId
+            return {
+              ...friend,
+              unread_count: shouldIncrement ? friend.unread_count + 1 : friend.unread_count,
+              last_message: msg.content,
+              last_message_at: msg.created_at,
+            }
+          }
+          if (isToThisFriend) {
+            return {
+              ...friend,
+              unread_count: 0,
+              last_message: msg.content,
+              last_message_at: msg.created_at,
+            }
+          }
+          return friend
+        })
+      })
+    }
+
+    subscribe("new_message", handleNewMessage)
+    return () => unsubscribe("new_message", handleNewMessage)
+  }, [subscribe, unsubscribe, selectedFriendId])
+
+  useEffect(() => {
+    if (selectedFriendId) {
+      setFriends((prev) =>
+        prev.map((f) =>
+          f.friend_id === selectedFriendId ? { ...f, unread_count: 0 } : f
+        )
+      )
+    }
+  }, [selectedFriendId])
+
+  const handleUnfriend = async (friendId: string, friendName: string) => {
+    const { error } = await friendsApi.removeFriend(friendId)
+    if (error) {
+      toast.error(error)
+      return
+    }
+
+    toast.success(`${friendName} removed from friends`)
+    setFriends((prev) => prev.filter((f) => f.friend_id !== friendId))
+    setOpenMenuId(null)
+    setConfirmUnfriendId(null)
+  }
 
   const formatTime = (dateStr: string) => {
     const date = new Date(dateStr)
@@ -39,11 +134,11 @@ export function FriendsList({ onSelectFriend, selectedFriendId }: FriendsListPro
   }
 
   return (
-    <div className="flex h-full flex-col border-r">
+    <div className="flex h-full flex-col border-r" ref={menuRef}>
       <div className="border-b p-3">
         <h2 className="font-semibold">Friends</h2>
       </div>
-      
+
       <div className="flex-1 overflow-y-auto">
         {loading ? (
           <div className="flex items-center justify-center p-4">
@@ -56,7 +151,7 @@ export function FriendsList({ onSelectFriend, selectedFriendId }: FriendsListPro
         ) : (
           <ul className="divide-y">
             {friends.map((friend) => (
-              <li key={friend.friend_id}>
+              <li key={friend.friend_id} className="relative">
                 <button
                   onClick={() => onSelectFriend(friend)}
                   className={`w-full p-3 text-left hover:bg-accent ${
@@ -75,6 +170,57 @@ export function FriendsList({ onSelectFriend, selectedFriendId }: FriendsListPro
                     <span className="truncate">{friend.last_message || "No messages"}</span>
                     <span>{formatTime(friend.last_message_at)}</span>
                   </div>
+                </button>
+
+                {openMenuId === friend.friend_id && !confirmUnfriendId && (
+                  <div className="absolute right-2 top-2 z-10 w-40 rounded-md border bg-background p-1 shadow-lg">
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        setConfirmUnfriendId(friend.friend_id)
+                      }}
+                      className="flex w-full items-center gap-2 rounded-sm px-2 py-1 text-sm text-destructive hover:bg-destructive/10"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                      Unfriend
+                    </button>
+                  </div>
+                )}
+
+                {confirmUnfriendId === friend.friend_id && (
+                  <div className="absolute right-2 top-2 z-20 w-56 rounded-md border bg-background p-3 shadow-lg">
+                    <div className="mb-2 text-sm font-medium">Unfriend {friend.friend_name}?</div>
+                    <div className="flex gap-2">
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          handleUnfriend(friend.friend_id, friend.friend_name)
+                        }}
+                        className="flex-1 rounded-sm bg-destructive px-2 py-1 text-sm text-destructive-foreground hover:bg-destructive/90"
+                      >
+                        Unfriend
+                      </button>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          setConfirmUnfriendId(null)
+                        }}
+                        className="flex-1 rounded-sm border px-2 py-1 text-sm hover:bg-accent"
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    setOpenMenuId(openMenuId === friend.friend_id ? null : friend.friend_id)
+                  }}
+                  className="absolute right-2 top-3 rounded-sm p-1 hover:bg-accent"
+                >
+                  <MoreVertical className="h-4 w-4" />
                 </button>
               </li>
             ))}

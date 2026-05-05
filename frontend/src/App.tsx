@@ -11,6 +11,7 @@ import { ForgotPasswordPage } from "@/pages/ForgotPasswordPage"
 import { ResetPasswordPage } from "@/pages/ResetPasswordPage"
 import { HomePage } from "@/pages/HomePage"
 import { Toaster } from "sonner"
+import { WebSocketProvider } from "@/contexts/WebSocketContext"
 
 function InitialRedirect() {
   const { user, isVerified, isLoading } = useAuth()
@@ -114,8 +115,10 @@ function App() {
     <BrowserRouter>
       <ThemeProvider>
         <AuthProvider>
-          <AppRoutes />
-          <Toaster position="top-right" richColors />
+          <WebSocketProvider>
+            <AppRoutes />
+            <Toaster position="top-right" richColors />
+          </WebSocketProvider>
         </AuthProvider>
       </ThemeProvider>
     </BrowserRouter>

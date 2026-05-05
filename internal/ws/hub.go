@@ -121,6 +121,17 @@ func (h *Hub) BroadcastNewNotification(userID, notificationType, content string)
 	h.SendToUser(userID, msgBytes)
 }
 
+func (h *Hub) SendNewFriend(userID string) {
+	msg := map[string]interface{}{
+		"type": "new_friend",
+		"data": map[string]string{
+			"content": "New friend added!",
+		},
+	}
+	msgBytes, _ := json.Marshal(msg)
+	h.SendToUser(userID, msgBytes)
+}
+
 func (h *Hub) GetClient(userID string) (*Client, bool) {
 	h.mu.RLock()
 	defer h.mu.RUnlock()

@@ -64,6 +64,7 @@ func (s *chatService) SendMessage(fromUserID, toUserID, content string) (*chatdo
 
 	if s.wsHub != nil {
 		s.wsHub.SendToUserJSON(toUserID, "new_message", msg)
+		s.wsHub.SendToUserJSON(fromUserID, "new_message", msg)
 	}
 
 	return msg, nil

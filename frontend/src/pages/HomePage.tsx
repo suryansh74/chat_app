@@ -13,43 +13,51 @@ export function HomePage() {
   const [showFriendRequest, setShowFriendRequest] = useState(false)
   const [showNotifications, setShowNotifications] = useState(false)
   const [friendsKey, setFriendsKey] = useState(0)
+  const [notificationRefreshKey, setNotificationRefreshKey] = useState(0)
 
   const handleSelectFriend = (friend: FriendListItem) => {
     setSelectedFriend(friend)
   }
 
-const handleNotificationsRefresh = useCallback(() => {
-    setFriendsKey(prev => prev + 1)
+  const handleNotificationsRefresh = useCallback(() => {
+    setFriendsKey((prev) => prev + 1)
+  }, [])
+
+  const triggerNotificationRefresh = useCallback(() => {
+    setNotificationRefreshKey((prev) => prev + 1)
+    setFriendsKey((prev) => prev + 1)
   }, [])
 
   return (
     <div className="flex h-screen flex-col">
-      <Navbar 
-        onOpenFriendRequest={() => setShowFriendRequest(true)} 
+      <Navbar
+        notificationRefreshKey={notificationRefreshKey}
+        onOpenFriendRequest={() => setShowFriendRequest(true)}
         onOpenNotifications={() => setShowNotifications(true)}
         onNotificationCountChange={handleNotificationsRefresh}
-        onNotificationHandled={handleNotificationsRefresh}
       />
-      
+
       <main className="flex flex-1 overflow-hidden">
-        {/* Left Sidebar - Friends List */}
         <div className="w-80 flex-shrink-0">
-          <FriendsList 
+          <FriendsList
             key={friendsKey}
-            onSelectFriend={handleSelectFriend} 
+            onSelectFriend={handleSelectFriend}
             selectedFriendId={selectedFriend?.friend_id}
           />
         </div>
 
-        {/* Right Side - Chat Window or Notifications */}
         <div className="flex-1">
           {showNotifications ? (
-            <NotificationPanel 
-              onClose={() => setShowNotifications(false)} 
-              onNotificationHandled={handleNotificationsRefresh}
+            <NotificationPanel
+              onClose={() => setShowNotifications(false)}
+              onNotificationHandled={triggerNotificationRefresh}
             />
           ) : selectedFriend && user ? (
-            <ChatWindow friend={selectedFriend} userId={user.id} />
+            <ChatWindow
+              friend={selectedFriend}
+              userId={user.id}
+              onFriendRemoved={() => setSelectedFriend(null)}
+            />
           ) : (
             <div className="flex h-full items-center justify-center text-muted-foreground">
               <div className="text-center">
@@ -61,7 +69,6 @@ const handleNotificationsRefresh = useCallback(() => {
         </div>
       </main>
 
-      {/* Friend Request Modal */}
       {showFriendRequest && (
         <FriendRequestModal onClose={() => setShowFriendRequest(false)} />
       )}

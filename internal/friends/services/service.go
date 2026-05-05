@@ -151,6 +151,9 @@ func (s *friendsService) AcceptFriendRequest(requestID, userID string) error {
 			acceptorName = acceptorInfo.Name
 		}
 		s.wsHub.BroadcastNewNotification(notification.FromUserID, "FRIEND_ACCEPTED", acceptorName+" accepted your friend request")
+
+		s.wsHub.SendNewFriend(notification.FromUserID)
+		s.wsHub.SendNewFriend(userID)
 	}
 
 	// Send email to the request sender
@@ -226,11 +229,30 @@ func (s *friendsService) SearchFriends(userID, query string) ([]friendsdomain.Fr
 }
 
 func (s *friendsService) RemoveFriend(userID, friendID string) error {
+	userInfo, _ := s.friendRepo.GetUserInfo(userID)
+	friendInfo, _ := s.friendRepo.GetUserInfo(friendID)
+
 	err := s.friendRepo.DeleteFriend(userID, friendID)
 	if err != nil {
 		return err
 	}
-	return s.friendRepo.DeleteFriend(friendID, userID)
+	err = s.friendRepo.DeleteFriend(friendID, userID)
+	if err != nil {
+		return err
+	}
+
+	if s.wsHub != nil {
+		s.wsHub.SendToUserJSON(friendID, "friend_removed", map[string]string{
+			"user_id":   userID,
+			"user_name": userInfo.Name,
+		})
+		s.wsHub.SendToUserJSON(userID, "friend_removed", map[string]string{
+			"user_id":   friendID,
+			"user_name": friendInfo.Name,
+		})
+	}
+
+	return nil
 }
 
 func containsIgnoreCase(s, substr string) bool {

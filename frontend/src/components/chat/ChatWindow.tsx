@@ -1,71 +1,67 @@
-import { useState, useEffect, useRef } from "react"
+import { useState, useEffect, useRef, useCallback } from "react"
 import { Send } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { chatApi, type MessageListItem, type FriendListItem, createWebSocket } from "@/lib/api"
+import { chatApi, type MessageListItem, type FriendListItem } from "@/lib/api"
+import { useWebSocket } from "@/contexts/WebSocketContext"
 
 interface ChatWindowProps {
   friend: FriendListItem
   userId: string
 }
 
-export function ChatWindow({ friend, userId }: ChatWindowProps) {
+export function ChatWindow({ friend, userId, onFriendRemoved }: ChatWindowProps & { onFriendRemoved: () => void }) {
+  const { subscribe, unsubscribe } = useWebSocket()
   const [messages, setMessages] = useState<MessageListItem[]>([])
   const [newMessage, setNewMessage] = useState("")
   const [loading, setLoading] = useState(true)
-  const [ws, setWs] = useState<WebSocket | null>(null)
   const messagesEndRef = useRef<HTMLDivElement>(null)
-  const initializedRef = useRef(false)
 
-  const loadMessages = async () => {
+  const loadMessages = useCallback(async () => {
     setLoading(true)
     const { data } = await chatApi.getMessages(friend.friend_id, 50)
     if (data?.messages) {
       setMessages(data.messages.reverse())
     }
     setLoading(false)
-  }
-
-  const initWebSocket = () => {
-    const socket = createWebSocket(userId)
-    socket.onopen = () => {
-      console.log("WebSocket connected")
-      setWs(socket)
-    }
-    socket.onmessage = (event) => {
-      const data = JSON.parse(event.data)
-      if (data.type === "new_message") {
-        const msg = {
-          ...data.message,
-          is_me: data.message.from_user_id === userId
-        }
-        if (!msg.is_me) {
-          setMessages((prev) => [...prev, msg])
-        }
-      }
-    }
-    socket.onerror = (error) => {
-      console.error("WebSocket error:", error)
-    }
-    socket.onclose = () => {
-      console.log("WebSocket closed")
-    }
-  }
+  }, [friend.friend_id])
 
   useEffect(() => {
-    if (initializedRef.current) return
-    initializedRef.current = true
-
     loadMessages()
-    initWebSocket()
+  }, [loadMessages])
 
-    return () => {
-      if (ws) {
-        ws.close()
+  useEffect(() => {
+    const handleFriendRemoved = (data: unknown) => {
+      const d = data as { message: { user_id: string } }
+      if (d.message.user_id === friend.friend_id) {
+        onFriendRemoved()
       }
-      initializedRef.current = false
     }
-  }, [friend.friend_id])
+
+    subscribe("friend_removed", handleFriendRemoved)
+    return () => unsubscribe("friend_removed", handleFriendRemoved)
+  }, [friend.friend_id, subscribe, unsubscribe, onFriendRemoved])
+
+  useEffect(() => {
+    const handleNewMessage = (data: unknown) => {
+      const raw = data as { message: { id: string; from_user_id: string; to_user_id: string; content: string; created_at: string } }
+      const msg = raw.message
+      const isMe = msg.from_user_id === userId
+      if (!isMe) {
+        setMessages((prev) => [...prev, {
+          message_id: msg.id,
+          from_user_id: msg.from_user_id,
+          to_user_id: msg.to_user_id,
+          content: msg.content,
+          is_me: false,
+          created_at: msg.created_at,
+        }])
+      }
+    }
+
+    subscribe("new_message", handleNewMessage)
+    return () => unsubscribe("new_message", handleNewMessage)
+  }, [userId, subscribe, unsubscribe])
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
@@ -76,7 +72,15 @@ export function ChatWindow({ friend, userId }: ChatWindowProps) {
 
     const { data } = await chatApi.sendMessage(friend.friend_id, newMessage)
     if (data?.message) {
-      setMessages((prev) => [...prev, data.message])
+      const raw = data.message as { id?: string; from_user_id?: string; to_user_id?: string; content?: string; created_at?: string; message_id?: string; is_me?: boolean }
+      setMessages((prev) => [...prev, {
+        message_id: raw.message_id || raw.id || "",
+        from_user_id: raw.from_user_id || "",
+        to_user_id: raw.to_user_id || "",
+        content: raw.content || "",
+        is_me: true,
+        created_at: raw.created_at || new Date().toISOString(),
+      }])
       setNewMessage("")
     }
   }
