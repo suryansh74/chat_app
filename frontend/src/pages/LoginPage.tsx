@@ -25,7 +25,7 @@ export function LoginPage() {
     mode: "onChange",
     defaultValues: {
       email: "suryanshawasthi56@gmail.com",
-      password: "Sample123#",
+      password: "Krazymon123#",
       remember_me: false,
     },
   });

@@ -5,6 +5,7 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
+	"github.com/suryansh74/chat_app/internal/ws"
 	"github.com/suryansh74/chat_app/pkg/logger"
 	"github.com/suryansh74/chat_app/shared/helper"
 	authmiddleware "github.com/suryansh74/chat_app/shared/middleware"
@@ -51,6 +52,54 @@ func (s *server) setupRoutes() {
 				r.Post("/set_password", s.passwordResetHandler.SetPassword)
 			})
 		})
+
+		// Friends routes (requires verified email)
+		r.Group(func(friends chi.Router) {
+			friends.Use(authmiddleware.VerifiedMiddleware(s.tokenMaker))
+			friends.Route("/friends", func(r chi.Router) {
+				r.Get("/list", s.friendsHandler.GetFriends)
+				r.Post("/request", s.friendsHandler.SendFriendRequest)
+				r.Post("/accept", s.friendsHandler.AcceptFriendRequest)
+				r.Post("/reject", s.friendsHandler.RejectFriendRequest)
+				r.Get("/search", s.friendsHandler.SearchFriends)
+				r.Delete("/", s.friendsHandler.RemoveFriend)
+			})
+		})
+
+		// Search routes (requires verified email)
+		r.Group(func(search chi.Router) {
+			search.Use(authmiddleware.VerifiedMiddleware(s.tokenMaker))
+			search.Route("/search", func(r chi.Router) {
+				r.Get("/email", s.friendsHandler.SearchByEmail)
+				r.Get("/global", s.chatHandler.SearchMessages)
+				r.Get("/local", s.chatHandler.SearchConversationMessages)
+			})
+		})
+
+		// Chat routes (requires verified email)
+		r.Group(func(chat chi.Router) {
+			chat.Use(authmiddleware.VerifiedMiddleware(s.tokenMaker))
+			chat.Route("/chat", func(r chi.Router) {
+				r.Get("/messages", s.chatHandler.GetMessages)
+				r.Post("/messages", s.chatHandler.SendMessage)
+			})
+		})
+
+		// Notification routes (requires verified email)
+		r.Group(func(notification chi.Router) {
+			notification.Use(authmiddleware.VerifiedMiddleware(s.tokenMaker))
+			notification.Route("/notification", func(r chi.Router) {
+				r.Get("/list", s.notificationHandler.GetNotifications)
+				r.Get("/unread-count", s.notificationHandler.GetUnreadCount)
+				r.Put("/read", s.notificationHandler.MarkAsRead)
+				r.Put("/read-all", s.notificationHandler.MarkAllAsRead)
+			})
+		})
+	})
+
+	// WebSocket route (no auth middleware - auth via query param)
+	s.router.Get("/ws", func(w http.ResponseWriter, r *http.Request) {
+		ws.ServeWs(s.wsHub, w, r)
 	})
 }
 

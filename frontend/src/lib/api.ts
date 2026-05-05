@@ -120,3 +120,108 @@ export const authApi = {
     }),
 };
 
+export interface FriendListItem {
+  friend_id: string;
+  friend_name: string;
+  friend_email: string;
+  last_message: string;
+  last_message_at: string;
+  unread_count: number;
+}
+
+export interface Friend {
+  id: string;
+  friend_id: string;
+  friend_name: string;
+  friend_email: string;
+}
+
+export interface MessageListItem {
+  message_id: string;
+  from_user_id: string;
+  to_user_id: string;
+  content: string;
+  is_me: boolean;
+  created_at: string;
+}
+
+export interface NotificationListItem {
+  id: string;
+  type: string;
+  content: string;
+  is_read: boolean;
+  from_user: string;
+  created_at: string;
+}
+
+export const friendsApi = {
+  getFriends: () => api.get<{ friends: FriendListItem[] }>("/friends/list"),
+
+  sendFriendRequest: (to_user_id: string) =>
+    api.post<{ message: string }>("/friends/request", { to_user_id }),
+
+  acceptFriendRequest: (request_id: string) =>
+    api.post<{ message: string }>("/friends/accept", { request_id }),
+
+  rejectFriendRequest: (request_id: string) =>
+    api.post<{ message: string }>("/friends/reject", { request_id }),
+
+  searchFriends: (q: string) =>
+    api.get<{ friends: FriendListItem[] }>(`/friends/search?q=${encodeURIComponent(q)}`),
+
+  removeFriend: (friend_id: string) =>
+    api.delete<{ message: string }>(`/friends/?friend_id=${friend_id}`),
+};
+
+export const searchApi = {
+  searchByEmail: (q: string) =>
+    api.get<{ users: Friend[] }>(`/search/email?q=${encodeURIComponent(q)}`),
+
+  searchGlobal: (q: string) =>
+    api.get<{ messages: MessageListItem[] }>(`/search/global?q=${encodeURIComponent(q)}`),
+
+  searchLocal: (q: string, friend_id: string) =>
+    api.get<{ messages: MessageListItem[] }>(
+      `/search/local?q=${encodeURIComponent(q)}&friend_id=${friend_id}`
+    ),
+};
+
+export const chatApi = {
+  getMessages: (friend_id: string, limit?: number, offset?: number) => {
+    let url = `/chat/messages?friend_id=${friend_id}`;
+    if (limit) url += `&limit=${limit}`;
+    if (offset) url += `&offset=${offset}`;
+    return api.get<{ messages: MessageListItem[] }>(url);
+  },
+
+  sendMessage: (to_user_id: string, content: string) =>
+    api.post<{ message: MessageListItem }>("/chat/messages", {
+      to_user_id,
+      content,
+    }),
+};
+
+export const notificationApi = {
+  getNotifications: (limit?: number, offset?: number) => {
+    let url = "/notification/list";
+    if (limit) url += `?limit=${limit}`;
+    if (offset) url += `?offset=${offset}`;
+    return api.get<{ notifications: NotificationListItem[] }>(url);
+  },
+
+  getUnreadCount: () =>
+    api.get<{ unread_count: number }>("/notification/unread-count"),
+
+  markAsRead: (id: string) =>
+    api.put<{ message: string }>(`/notification/read?id=${id}`),
+
+  markAllAsRead: () =>
+    api.put<{ message: string }>("/notification/read-all"),
+};
+
+const WS_URL = "ws://localhost:8000/ws";
+
+export function createWebSocket(userId: string): WebSocket {
+  return new WebSocket(`${WS_URL}?user_id=${userId}`);
+}
+

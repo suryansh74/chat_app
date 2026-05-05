@@ -1,0 +1,935 @@
+<!DOCTYPE html>
+<html lang="en" class="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Authentication System Report | ChatApp</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/mermaid/dist/mermaid.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+        
+        * { font-family: 'Inter', sans-serif; }
+        
+        :root {
+            --primary: #0ea5e9;
+            --primary-dark: #0284c7;
+        }
+        
+        html.dark { --bg-primary: #0f172a; --bg-secondary: #1e293b; --bg-card: #1e293b; --text-primary: #f1f5f9; --text-secondary: #94a3b8; --border: #334155; }
+        html.light { --bg-primary: #f8fafc; --bg-secondary: #f1f5f9; --bg-card: #ffffff; --text-primary: #0f172a; --text-secondary: #64748b; --border: #e2e8f0; }
+        
+        body { background-color: var(--bg-primary); color: var(--text-primary); transition: all 0.3s ease; }
+        
+        .card { background: var(--bg-card); border: 1px solid var(--border); border-radius: 1rem; transition: all 0.3s ease; }
+        .card:hover { transform: translateY(-2px); box-shadow: 0 20px 40px -12px rgba(0,0,0,0.15); }
+        
+        .nav-item { padding: 0.75rem 1rem; border-radius: 0.5rem; transition: all 0.2s; cursor: pointer; }
+        .nav-item:hover, .nav-item.active { background: var(--primary); color: white; }
+        
+        .fade-in { animation: fadeIn 0.5s ease-out; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+        
+        .slide-in { animation: slideIn 0.4s ease-out; }
+        @keyframes slideIn { from { opacity: 0; transform: translateX(-20px); } to { opacity: 1; transform: translateX(0); } }
+        
+        .pulse { animation: pulse 2s infinite; }
+        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.7; } }
+        
+        .theme-toggle { position: fixed; top: 1rem; right: 1rem; z-index: 100; }
+        
+        .flow-step { position: relative; padding: 1.5rem; border-radius: 1rem; transition: all 0.3s; }
+        .flow-step:hover { transform: scale(1.02); }
+        .flow-arrow { font-size: 1.5rem; color: var(--primary); }
+        
+        .code-block { background: #1e293b; border-radius: 0.75rem; padding: 1rem; overflow-x: auto; }
+        
+        .stat-card { background: linear-gradient(135deg, var(--primary) 0%, #8b5cf6 100%); color: white; }
+        
+        .tab-content { display: none; }
+        .tab-content.active { display: block; animation: fadeIn 0.3s; }
+        
+        .toc-item { padding: 0.5rem 1rem; border-left: 3px solid transparent; transition: all 0.2s; cursor: pointer; }
+        .toc-item:hover, .toc-item.active { border-left-color: var(--primary); background: var(--bg-secondary); }
+        
+        .mermaid { background: var(--bg-card); padding: 1rem; border-radius: 0.75rem; }
+    </style>
+</head>
+<body class="light">
+    <!-- Theme Toggle -->
+    <button onclick="toggleTheme()" class="theme-toggle px-4 py-2 rounded-full bg-slate-800 text-white hover:bg-slate-700 transition shadow-lg">
+        <i class="fas fa-moon dark:hidden"></i>
+        <i class="fas fa-sun hidden dark:inline"></i>
+    </button>
+
+    <div class="flex min-h-screen">
+        <!-- Sidebar -->
+        <aside class="w-72 bg-slate-900 text-white p-6 fixed h-full overflow-y-auto">
+            <div class="mb-8">
+                <h1 class="text-2xl font-bold flex items-center gap-3">
+                    <i class="fas fa-shield-halved text-cyan-400"></i>
+                    Auth Report
+                </h1>
+                <p class="text-slate-400 text-sm mt-2">ChatApp Authentication System</p>
+            </div>
+            
+            <nav class="space-y-2">
+                <div class="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-3">Overview</div>
+                <a href="#overview" class="nav-item block" onclick="showSection('overview')">
+                    <i class="fas fa-chart-pie w-6"></i> Dashboard
+                </a>
+                
+                <div class="text-xs font-semibold text-slate-500 uppercase tracking-wider mt-6 mb-3">Technical</div>
+                <a href="#architecture" class="nav-item block" onclick="showSection('architecture')">
+                    <i class="fas fa-sitemap w-6"></i> Architecture
+                </a>
+                <a href="#frontend" class="nav-item block" onclick="showSection('frontend')">
+                    <i class="fab fa-react w-6"></i> Frontend
+                </a>
+                <a href="#backend" class="nav-item block" onclick="showSection('backend')">
+                    <i class="fas fa-server w-6"></i> Backend
+                </a>
+                <a href="#api" class="nav-item block" onclick="showSection('api')">
+                    <i class="fas fa-plug w-6"></i> API Endpoints
+                </a>
+                <a href="#database" class="nav-item block" onclick="showSection('database')">
+                    <i class="fas fa-database w-6"></i> Database
+                </a>
+                
+                <div class="text-xs font-semibold text-slate-500 uppercase tracking-wider mt-6 mb-3">User Flows</div>
+                <a href="#flows" class="nav-item block" onclick="showSection('flows')">
+                    <i class="fas fa-route w-6"></i> Authentication Flows
+                </a>
+                <a href="#security" class="nav-item block" onclick="showSection('security')">
+                    <i class="fas fa-lock w-6"></i> Security
+                </a>
+            </nav>
+            
+            <div class="mt-8 p-4 rounded-lg bg-slate-800">
+                <p class="text-xs text-slate-400">Report Generated</p>
+                <p class="text-sm font-medium">May 2026</p>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="ml-72 flex-1 p-8">
+            <!-- Overview Section -->
+            <section id="overview" class="tab-content active">
+                <div class="fade-in">
+                    <h2 class="text-3xl font-bold mb-2">System Overview</h2>
+                    <p class="text-slate-500 mb-8">Complete authentication system with email verification and password reset</p>
+                    
+                    <!-- Stats -->
+                    <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+                        <div class="card stat-card p-6">
+                            <div class="flex items-center justify-between">
+                                <div>
+                                    <p class="text-white/80 text-sm">Components</p>
+                                    <p class="text-3xl font-bold">7</p>
+                                </div>
+                                <i class="fas fa-cube text-4xl text-white/30"></i>
+                            </div>
+                        </div>
+                        <div class="card stat-card p-6" style="background: linear-gradient(135deg, #8b5cf6 0%, #ec4899 100%);">
+                            <div class="flex items-center justify-between">
+                                <div>
+                                    <p class="text-white/80 text-sm">API Endpoints</p>
+                                    <p class="text-3xl font-bold">15</p>
+                                </div>
+                                <i class="fas fa-plug text-4xl text-white/30"></i>
+                            </div>
+                        </div>
+                        <div class="card stat-card p-6" style="background: linear-gradient(135deg, #10b981 0%, #14b8a6 100%);">
+                            <div class="flex items-center justify-between">
+                                <div>
+                                    <p class="text-white/80 text-sm">Pages</p>
+                                    <p class="text-3xl font-bold">7</p>
+                                </div>
+                                <i class="fas fa-file-alt text-4xl text-white/30"></i>
+                            </div>
+                        </div>
+                        <div class="card stat-card p-6" style="background: linear-gradient(135deg, #f59e0b 0%, #ef4444 100%);">
+                            <div class="flex items-center justify-between">
+                                <div>
+                                    <p class="text-white/80 text-sm">Middleware</p>
+                                    <p class="text-3xl font-bold">2</p>
+                                </div>
+                                <i class="fas fa-shield-alt text-4xl text-white/30"></i>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Tech Stack -->
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div class="card p-6">
+                            <h3 class="text-lg font-bold mb-4 flex items-center gap-2">
+                                <i class="fab fa-golang text-blue-500"></i> Backend Stack
+                            </h3>
+                            <div class="flex flex-wrap gap-3">
+                                <span class="px-3 py-1.5 bg-blue-500/10 text-blue-500 rounded-full text-sm font-medium">Go 1.24</span>
+                                <span class="px-3 py-1.5 bg-purple-500/10 text-purple-500 rounded-full text-sm font-medium">Chi Router</span>
+                                <span class="px-3 py-1.5 bg-green-500/10 text-green-500 rounded-full text-sm font-medium">GORM</span>
+                                <span class="px-3 py-1.5 bg-yellow-500/10 text-yellow-500 rounded-full text-sm font-medium">MySQL</span>
+                                <span class="px-3 py-1.5 bg-cyan-500/10 text-cyan-500 rounded-full text-sm font-medium">PASETO</span>
+                                <span class="px-3 py-1.5 bg-orange-500/10 text-orange-500 rounded-full text-sm font-medium">Zap Logger</span>
+                            </div>
+                        </div>
+                        <div class="card p-6">
+                            <h3 class="text-lg font-bold mb-4 flex items-center gap-2">
+                                <i class="fab fa-react text-cyan-400"></i> Frontend Stack
+                            </h3>
+                            <div class="flex flex-wrap gap-3">
+                                <span class="px-3 py-1.5 bg-blue-500/10 text-blue-500 rounded-full text-sm font-medium">React 18</span>
+                                <span class="px-3 py-1.5 bg-cyan-500/10 text-cyan-500 rounded-full text-sm font-medium">TypeScript</span>
+                                <span class="px-3 py-1.5 bg-purple-500/10 text-purple-500 rounded-full text-sm font-medium">Tailwind</span>
+                                <span class="px-3 py-1.5 bg-pink-500/10 text-pink-500 rounded-full text-sm font-medium">shadcn UI</span>
+                                <span class="px-3 py-1.5 bg-yellow-500/10 text-yellow-500 rounded-full text-sm font-medium">React Hook Form</span>
+                                <span class="px-3 py-1.5 bg-green-500/10 text-green-500 rounded-full text-sm font-medium">Zod</span>
+                                <span class="px-3 py-1.5 bg-red-500/10 text-red-500 rounded-full text-sm font-medium">Sonner</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- System Diagram -->
+                    <div class="card p-6 mt-6">
+                        <h3 class="text-lg font-bold mb-4">High-Level System Architecture</h3>
+                        <div class="mermaid">
+                            graph TB
+                                subgraph Client["Frontend (React + TS)"]
+                                    UI[UI Components]
+                                    FC[Form Context]
+                                    AC[Auth Context]
+                                    TC[Theme Context]
+                                end
+                                
+                                subgraph Server["Backend (Go)"]
+                                    API[Chi Router]
+                                    HAND[Handlers]
+                                    SERV[Services]
+                                    MID[Middleware]
+                                    DB[(MySQL)]
+                                end
+                                
+                                subgraph External
+                                    EMAIL[Email Service]
+                                    TOKEN[PASETO Token]
+                                end
+                                
+                                UI --> FC --> AC --> API
+                                API --> MID --> HAND --> SERV --> DB
+                                SERV --> TOKEN
+                                SERV --> EMAIL
+                                DB --> SERV
+                                
+                                style Client fill:#0ea5e9,color:#fff
+                                style Server fill:#8b5cf6,color:#fff
+                                style External fill:#10b981,color:#fff
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Architecture Section -->
+            <section id="architecture" class="tab-content">
+                <div class="fade-in">
+                    <h2 class="text-3xl font-bold mb-2">Architecture</h2>
+                    <p class="text-slate-500 mb-8">Hexagonal architecture with clean separation of concerns</p>
+                    
+                    <div class="card p-6 mb-6">
+                        <h3 class="text-lg font-bold mb-4">Architecture Pattern</h3>
+                        <div class="mermaid">
+                            graph TB
+                                subgraph Presentation["Presentation Layer"]
+                                    HAND[Handlers]
+                                    API[API Routes]
+                                end
+                                
+                                subgraph Domain["Domain Layer"]
+                                    DOM[Domain Models]
+                                    SERV[Services]
+                                    PORT[Ports/Interfaces]
+                                end
+                                
+                                subgraph Infrastructure["Infrastructure Layer"]
+                                    REPO[Repositories]
+                                    EXT[External Services]
+                                    DB[(Database)]
+                                    EMAIL[Email]
+                                end
+                                
+                                Presentation --> Domain
+                                Domain --> Infrastructure
+                                
+                                style Presentation fill:#0ea5e9,color:#fff
+                                style Domain fill:#8b5cf6,color:#fff
+                                style Infrastructure fill:#10b981,color:#fff
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                        <div class="card p-6">
+                            <div class="w-12 h-12 rounded-lg bg-blue-500/10 flex items-center justify-center mb-4">
+                                <i class="fas fa-folder-tree text-2xl text-blue-500"></i>
+                            </div>
+                            <h4 class="font-bold mb-2">Directory Structure</h4>
+                            <pre class="text-xs text-slate-500 bg-slate-900 p-3 rounded-lg overflow-x-auto">chat_app/
+├── cmd/api/         # Entry point
+├── config/          # Configuration
+├── internal/auth/   # Auth module
+│   ├── handlers/    # HTTP handlers
+│   ├── services/    # Business logic
+│   ├── repositories/# Data access
+│   ├── domain/      # Domain models
+│   └── apperr/      # Error types
+├── server/          # HTTP server
+├── shared/          # Shared utilities
+│   ├── middleware/  # Auth middleware
+│   ├── token/       # PASETO tokens
+│   ├── email/       # Email sender
+│   └── helper/      # Helpers</pre>
+                        </div>
+                        
+                        <div class="card p-6">
+                            <div class="w-12 h-12 rounded-lg bg-purple-500/10 flex items-center justify-center mb-4">
+                                <i class="fas fa-layer-group text-2xl text-purple-500"></i>
+                            </div>
+                            <h4 class="font-bold mb-2">Frontend Structure</h4>
+                            <pre class="text-xs text-slate-500 bg-slate-900 p-3 rounded-lg overflow-x-auto">frontend/src/
+├── contexts/       # React contexts
+│   ├── AuthContext.tsx
+│   └── ThemeContext.tsx
+├── components/      # Reusable components
+│   ├── FormField.tsx
+│   ├── Navbar.tsx
+│   └── ui/         # shadcn components
+├── pages/           # Page components
+│   ├── LoginPage.tsx
+│   ├── RegisterPage.tsx
+│   └── ...
+├── lib/             # Utilities
+│   ├── api.ts       # API wrapper
+│   └── schemas.ts   # Zod schemas</pre>
+                        </div>
+                        
+                        <div class="card p-6">
+                            <div class="w-12 h-12 rounded-lg bg-green-500/10 flex items-center justify-center mb-4">
+                                <i class="fas fa-database text-2xl text-green-500"></i>
+                            </div>
+                            <h4 class="font-bold mb-2">Database Schema</h4>
+                            <div class="text-sm text-slate-500">
+                                <div class="flex items-center gap-2 py-1">
+                                    <i class="fas fa-table text-yellow-500"></i>
+                                    <span>users table</span>
+                                </div>
+                                <div class="flex items-center gap-2 py-1">
+                                    <i class="fas fa-key text-blue-500"></i>
+                                    <span>Primary: id (UUID)</span>
+                                </div>
+                                <div class="flex items-center gap-2 py-1">
+                                    <i class="fas fa-envelope text-purple-500"></i>
+                                    <span>Unique: email</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Frontend Section -->
+            <section id="frontend" class="tab-content">
+                <div class="fade-in">
+                    <h2 class="text-3xl font-bold mb-2">Frontend Implementation</h2>
+                    <p class="text-slate-500 mb-8">React with TypeScript, Tailwind CSS, and shadcn/ui</p>
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                        <div class="card p-6">
+                            <h3 class="text-lg font-bold mb-4 flex items-center gap-2">
+                                <i class="fas fa-sitemap text-cyan-500"></i> Component Hierarchy
+                            </h3>
+                            <div class="mermaid">
+                                graph TD
+                                    App[App.tsx] --> AuthProvider
+                                    App --> ThemeProvider
+                                    App --> Routes
+                                    
+                                    Routes --> InitialRedirect
+                                    Routes --> GuestRoute
+                                    Routes --> ProtectedRoute
+                                    
+                                    ProtectedRoute --> HomePage
+                                    ProtectedRoute --> VerifyEmailPage
+                                    
+                                    GuestRoute --> LoginPage
+                                    GuestRoute --> RegisterPage
+                                    GuestRoute --> ForgotPasswordPage
+                                    GuestRoute --> ResetPasswordPage
+                                    
+                                    HomePage --> Navbar
+                                    VerifyEmailPage --> VerifyOTPPage
+                                    
+                                    AuthProvider --> checkAuth
+                                    AuthProvider --> login/logout
+                                    
+                                    style App fill:#0ea5e9,color:#fff
+                            </div>
+                        </div>
+                        
+                        <div class="card p-6">
+                            <h3 class="text-lg font-bold mb-4 flex items-center gap-2">
+                                <i class="fas fa-cube text-purple-500"></i> Key Components
+                            </h3>
+                            <div class="space-y-4">
+                                <div class="p-4 rounded-lg bg-slate-900">
+                                    <div class="flex items-center gap-3 mb-2">
+                                        <i class="fas fa-shield-alt text-green-400"></i>
+                                        <span class="font-semibold">AuthContext</span>
+                                    </div>
+                                    <p class="text-sm text-slate-400">Manages user state, authentication status, login/logout</p>
+                                </div>
+                                <div class="p-4 rounded-lg bg-slate-900">
+                                    <div class="flex items-center gap-3 mb-2">
+                                        <i class="fas fa-palette text-yellow-400"></i>
+                                        <span class="font-semibold">ThemeContext</span>
+                                    </div>
+                                    <p class="text-sm text-slate-400">Dark/light mode with system preference detection</p>
+                                </div>
+                                <div class="p-4 rounded-lg bg-slate-900">
+                                    <div class="flex items-center gap-3 mb-2">
+                                        <i class="fas fa-pen text-blue-400"></i>
+                                        <span class="font-semibold">FormField</span>
+                                    </div>
+                                    <p class="text-sm text-slate-400">Reusable input with validation, password toggle, inline errors</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="card p-6">
+                        <h3 class="text-lg font-bold mb-4">Authentication Flow</h3>
+                        <div class="flex flex-wrap items-center justify-center gap-4">
+                            <div class="flow-step card text-center" style="background: linear-gradient(135deg, #0ea5e9 0%, #0284c7 100%); color: white;">
+                                <i class="fas fa-sign-in-alt text-2xl mb-2"></i>
+                                <p class="font-semibold">Login/Register</p>
+                            </div>
+                            <div class="flow-arrow"><i class="fas fa-arrow-right"></i></div>
+                            <div class="flow-step card text-center" style="background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%); color: white;">
+                                <i class="fas fa-cookie text-2xl mb-2"></i>
+                                <p class="font-semibold">Set Cookie</p>
+                            </div>
+                            <div class="flow-arrow"><i class="fas fa-arrow-right"></i></div>
+                            <div class="flow-step card text-center" style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: white;">
+                                <i class="fas fa-user-check text-2xl mb-2"></i>
+                                <p class="font-semibold">checkAuth</p>
+                            </div>
+                            <div class="flow-arrow"><i class="fas fa-arrow-right"></i></div>
+                            <div class="flow-step card text-center" style="background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); color: white;">
+                                <i class="fas fa-home text-2xl mb-2"></i>
+                                <p class="font-semibold">Home Page</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Backend Section -->
+            <section id="backend" class="tab-content">
+                <div class="fade-in">
+                    <h2 class="text-3xl font-bold mb-2">Backend Implementation</h2>
+                    <p class="text-slate-500 mb-8">Go with Chi router, GORM, and hexagonal architecture</p>
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                        <div class="card p-6">
+                            <h3 class="text-lg font-bold mb-4">Request Flow</h3>
+                            <div class="mermaid">
+                                sequenceDiagram
+                                    participant C as Client
+                                    participant M as Middleware
+                                    participant H as Handler
+                                    participant S as Service
+                                    participant R as Repository
+                                    
+                                    C->>M: Request + Cookie
+                                    M->>M: Verify Token
+                                    M->>H: Valid Request
+                                    H->>S: Business Logic
+                                    S->>R: Data Access
+                                    R->>S: Result
+                                    S->>H: Response
+                                    H->>C: JSON Response
+                            </div>
+                        </div>
+                        
+                        <div class="card p-6">
+                            <h3 class="text-lg font-bold mb-4">Handler Structure</h3>
+                            <div class="space-y-3">
+                                <div class="p-3 rounded-lg bg-slate-900 flex items-center justify-between">
+                                    <span class="font-mono text-sm">auth_handler.go</span>
+                                    <span class="text-green-400 text-xs">Register, Login, Logout</span>
+                                </div>
+                                <div class="p-3 rounded-lg bg-slate-900 flex items-center justify-between">
+                                    <span class="font-mono text-sm">email_verification.go</span>
+                                    <span class="text-blue-400 text-xs">SendOTP, VerifyOTP</span>
+                                </div>
+                                <div class="p-3 rounded-lg bg-slate-900 flex items-center justify-between">
+                                    <span class="font-mono text-sm">password_reset.go</span>
+                                    <span class="text-yellow-400 text-xs">Forgot, Reset Password</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="card p-6">
+                        <h3 class="text-lg font-bold mb-4">Middleware Pipeline</h3>
+                        <div class="mermaid">
+                            graph LR
+                                CORS[CORS] --> Logger[Logger] --> Recover[Recoverer] --> Routes
+                                
+                                subgraph Routes
+                                    R1[Guest Routes] --> GM[GuestMiddleware]
+                                    R2[Protected Routes] --> AM[AuthMiddleware]
+                                    R3[Email Verified] --> EM[EmailVerifiedMiddleware]
+                                end
+                                
+                                style CORS fill:#ef4444,color:#fff
+                                style Logger fill:#f59e0b,color:#fff
+                                style Recover fill:#10b981,color:#fff
+                                style GM fill:#0ea5e9,color:#fff
+                                style AM fill:#8b5cf6,color:#fff
+                                style EM fill:#ec4899,color:#fff
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- API Section -->
+            <section id="api" class="tab-content">
+                <div class="fade-in">
+                    <h2 class="text-3xl font-bold mb-2">API Endpoints</h2>
+                    <p class="text-slate-500 mb-8">RESTful API with authentication</p>
+                    
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-sm">
+                            <thead>
+                                <tr class="border-b border-slate-700">
+                                    <th class="text-left py-3 px-4 font-semibold">Method</th>
+                                    <th class="text-left py-3 px-4 font-semibold">Endpoint</th>
+                                    <th class="text-left py-3 px-4 font-semibold">Auth</th>
+                                    <th class="text-left py-3 px-4 font-semibold">Description</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr class="border-b border-slate-800 hover:bg-slate-800/50">
+                                    <td class="py-3 px-4"><span class="px-2 py-1 bg-green-500/20 text-green-400 rounded text-xs font-mono">POST</span></td>
+                                    <td class="py-3 px-4 font-mono">/api/auth/register</td>
+                                    <td class="py-3 px-4"><span class="px-2 py-1 bg-red-500/20 text-red-400 rounded text-xs">None</span></td>
+                                    <td class="py-3 px-4">Register new user</td>
+                                </tr>
+                                <tr class="border-b border-slate-800 hover:bg-slate-800/50">
+                                    <td class="py-3 px-4"><span class="px-2 py-1 bg-green-500/20 text-green-400 rounded text-xs font-mono">POST</span></td>
+                                    <td class="py-3 px-4 font-mono">/api/auth/login</td>
+                                    <td class="py-3 px-4"><span class="px-2 py-1 bg-red-500/20 text-red-400 rounded text-xs">None</span></td>
+                                    <td class="py-3 px-4">Login with credentials</td>
+                                </tr>
+                                <tr class="border-b border-slate-800 hover:bg-slate-800/50">
+                                    <td class="py-3 px-4"><span class="px-2 py-1 bg-green-500/20 text-green-400 rounded text-xs font-mono">POST</span></td>
+                                    <td class="py-3 px-4 font-mono">/api/auth/logout</td>
+                                    <td class="py-3 px-4"><span class="px-2 py-1 bg-yellow-500/20 text-yellow-400 rounded text-xs">Required</span></td>
+                                    <td class="py-3 px-4">Logout and clear cookie</td>
+                                </tr>
+                                <tr class="border-b border-slate-800 hover:bg-slate-800/50">
+                                    <td class="py-3 px-4"><span class="px-2 py-1 bg-blue-500/20 text-blue-400 rounded text-xs font-mono">GET</span></td>
+                                    <td class="py-3 px-4 font-mono">/api/profile</td>
+                                    <td class="py-3 px-4"><span class="px-2 py-1 bg-yellow-500/20 text-yellow-400 rounded text-xs">Required</span></td>
+                                    <td class="py-3 px-4">Get user profile</td>
+                                </tr>
+                                <tr class="border-b border-slate-800 hover:bg-slate-800/50">
+                                    <td class="py-3 px-4"><span class="px-2 py-1 bg-green-500/20 text-green-400 rounded text-xs font-mono">POST</span></td>
+                                    <td class="py-3 px-4 font-mono">/api/email_verification/send_otp</td>
+                                    <td class="py-3 px-4"><span class="px-2 py-1 bg-yellow-500/20 text-yellow-400 rounded text-xs">Required</span></td>
+                                    <td class="py-3 px-4">Send OTP for verification</td>
+                                </tr>
+                                <tr class="border-b border-slate-800 hover:bg-slate-800/50">
+                                    <td class="py-3 px-4"><span class="px-2 py-1 bg-green-500/20 text-green-400 rounded text-xs font-mono">POST</span></td>
+                                    <td class="py-3 px-4 font-mono">/api/email_verification/verify_otp</td>
+                                    <td class="py-3 px-4"><span class="px-2 py-1 bg-yellow-500/20 text-yellow-400 rounded text-xs">Required</span></td>
+                                    <td class="py-3 px-4">Verify OTP and mark verified</td>
+                                </tr>
+                                <tr class="border-b border-slate-800 hover:bg-slate-800/50">
+                                    <td class="py-3 px-4"><span class="px-2 py-1 bg-blue-500/20 text-blue-400 rounded text-xs font-mono">GET</span></td>
+                                    <td class="py-3 px-4 font-mono">/api/email_verification/verified</td>
+                                    <td class="py-3 px-4"><span class="px-2 py-1 bg-yellow-500/20 text-yellow-400 rounded text-xs">Required</span></td>
+                                    <td class="py-3 px-4">Check if email verified</td>
+                                </tr>
+                                <tr class="border-b border-slate-800 hover:bg-slate-800/50">
+                                    <td class="py-3 px-4"><span class="px-2 py-1 bg-green-500/20 text-green-400 rounded text-xs font-mono">POST</span></td>
+                                    <td class="py-3 px-4 font-mono">/api/password_reset/send_otp</td>
+                                    <td class="py-3 px-4"><span class="px-2 py-1 bg-red-500/20 text-red-400 rounded text-xs">None</span></td>
+                                    <td class="py-3 px-4">Send password reset OTP</td>
+                                </tr>
+                                <tr class="border-b border-slate-800 hover:bg-slate-800/50">
+                                    <td class="py-3 px-4"><span class="px-2 py-1 bg-green-500/20 text-green-400 rounded text-xs font-mono">POST</span></td>
+                                    <td class="py-3 px-4 font-mono">/api/password_reset/verify_otp</td>
+                                    <td class="py-3 px-4"><span class="px-2 py-1 bg-red-500/20 text-red-400 rounded text-xs">None</span></td>
+                                    <td class="py-3 px-4">Verify password reset OTP</td>
+                                </tr>
+                                <tr class="border-b border-slate-800 hover:bg-slate-800/50">
+                                    <td class="py-3 px-4"><span class="px-2 py-1 bg-green-500/20 text-green-400 rounded text-xs font-mono">POST</span></td>
+                                    <td class="py-3 px-4 font-mono">/api/password_reset/set_password</td>
+                                    <td class="py-3 px-4"><span class="px-2 py-1 bg-red-500/20 text-red-400 rounded text-xs">None</span></td>
+                                    <td class="py-3 px-4">Set new password</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Database Section -->
+            <section id="database" class="tab-content">
+                <div class="fade-in">
+                    <h2 class="text-3xl font-bold mb-2">Database Schema</h2>
+                    <p class="text-slate-500 mb-8">MySQL with GORM</p>
+                    
+                    <div class="card p-6 mb-6">
+                        <h3 class="text-lg font-bold mb-4">Users Table</h3>
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-sm">
+                                <thead>
+                                    <tr class="border-b border-slate-700">
+                                        <th class="text-left py-2 px-3 font-semibold">Column</th>
+                                        <th class="text-left py-2 px-3 font-semibold">Type</th>
+                                        <th class="text-left py-2 px-3 font-semibold">Constraints</th>
+                                        <th class="text-left py-2 px-3 font-semibold">Description</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr class="border-b border-slate-800">
+                                        <td class="py-2 px-3 font-mono text-blue-400">id</td>
+                                        <td class="py-2 px-3">VARCHAR(36)</td>
+                                        <td class="py-2 px-3"><span class="text-xs text-yellow-400">PRIMARY KEY</span></td>
+                                        <td class="py-2 px-3">UUID</td>
+                                    </tr>
+                                    <tr class="border-b border-slate-800">
+                                        <td class="py-2 px-3 font-mono text-blue-400">name</td>
+                                        <td class="py-2 px-3">VARCHAR(100)</td>
+                                        <td class="py-2 px-3"><span class="text-xs text-green-400">NOT NULL</span></td>
+                                        <td class="py-2 px-3">User's full name</td>
+                                    </tr>
+                                    <tr class="border-b border-slate-800">
+                                        <td class="py-2 px-3 font-mono text-blue-400">email</td>
+                                        <td class="py-2 px-3">VARCHAR(255)</td>
+                                        <td class="py-2 px-3"><span class="text-xs text-purple-400">UNIQUE, NOT NULL</span></td>
+                                        <td class="py-2 px-3">User's email</td>
+                                    </tr>
+                                    <tr class="border-b border-slate-800">
+                                        <td class="py-2 px-3 font-mono text-blue-400">password</td>
+                                        <td class="py-2 px-3">VARCHAR(255)</td>
+                                        <td class="py-2 px-3"><span class="text-xs text-green-400">NOT NULL</span></td>
+                                        <td class="py-2 px-3">Bcrypt hashed</td>
+                                    </tr>
+                                    <tr class="border-b border-slate-800">
+                                        <td class="py-2 px-3 font-mono text-blue-400">is_verified</td>
+                                        <td class="py-2 px-3">BOOL</td>
+                                        <td class="py-2 px-3"><span class="text-xs text-green-400">DEFAULT FALSE</span></td>
+                                        <td class="py-2 px-3">Email verified status</td>
+                                    </tr>
+                                    <tr class="border-b border-slate-800">
+                                        <td class="py-2 px-3 font-mono text-blue-400">otp</td>
+                                        <td class="py-2 px-3">VARCHAR(6)</td>
+                                        <td class="py-2 px-3">NULL</td>
+                                        <td class="py-2 px-3">Verification OTP</td>
+                                    </tr>
+                                    <tr class="border-b border-slate-800">
+                                        <td class="py-2 px-3 font-mono text-blue-400">otp_expiry</td>
+                                        <td class="py-2 px-3">DATETIME</td>
+                                        <td class="py-2 px-3">NULL</td>
+                                        <td class="py-2 px-3">OTP expiration</td>
+                                    </tr>
+                                    <tr class="border-b border-slate-800">
+                                        <td class="py-2 px-3 font-mono text-blue-400">password_reset_otp</td>
+                                        <td class="py-2 px-3">VARCHAR(6)</td>
+                                        <td class="py-2 px-3">NULL</td>
+                                        <td class="py-2 px-3">Password reset OTP</td>
+                                    </tr>
+                                    <tr class="border-b border-slate-800">
+                                        <td class="py-2 px-3 font-mono text-blue-400">created_at</td>
+                                        <td class="py-2 px-3">DATETIME</td>
+                                        <td class="py-2 px-3">AUTO</td>
+                                        <td class="py-2 px-3">Creation timestamp</td>
+                                    </tr>
+                                    <tr class="border-b border-slate-800">
+                                        <td class="py-2 px-3 font-mono text-blue-400">updated_at</td>
+                                        <td class="py-2 px-3">DATETIME</td>
+                                        <td class="py-2 px-3">AUTO</td>
+                                        <td class="py-2 px-3">Update timestamp</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div class="card p-6">
+                            <h3 class="text-lg font-bold mb-4">Database Connection</h3>
+                            <pre class="text-xs text-slate-400 bg-slate-900 p-4 rounded-lg overflow-x-auto">DSN: root:@tcp(localhost:3306)/chat_app
+       ?charset=utf8mb4
+       &parseTime=True
+       &loc=Local
+       
+Auto-migrate enabled on startup</pre>
+                        </div>
+                        <div class="card p-6">
+                            <h3 class="text-lg font-bold mb-4">ORM Features</h3>
+                            <div class="space-y-2">
+                                <div class="flex items-center gap-2"><i class="fas fa-check text-green-400"></i> Auto migration</div>
+                                <div class="flex items-center gap-2"><i class="fas fa-check text-green-400"></i> Soft deletes</div>
+                                <div class="flex items-center gap-2"><i class="fas fa-check text-green-400"></i> Callbacks for timestamps</div>
+                                <div class="flex items-center gap-2"><i class="fas fa-check text-green-400"></i> UUID primary keys</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Flows Section -->
+            <section id="flows" class="tab-content">
+                <div class="fade-in">
+                    <h2 class="text-3xl font-bold mb-2">User Flows</h2>
+                    <p class="text-slate-500 mb-8">Complete authentication journey diagrams</p>
+                    
+                    <div class="card p-6 mb-6">
+                        <h3 class="text-lg font-bold mb-4">Registration Flow</h3>
+                        <div class="mermaid">
+                            sequenceDiagram
+                                participant U as User
+                                participant F as Frontend
+                                participant A as AuthHandler
+                                participant S as AuthService
+                                participant R as Repository
+                                participant E as Email
+                                
+                                U->>F: Fill registration form
+                                F->>F: Validate with Zod
+                                F->>A: POST /auth/register
+                                A->>S: Register(name, email, password)
+                                S->>R: GetUserByEmail(email)
+                                R-->>S: nil (not found)
+                                S->>R: Create(user)
+                                S->>E: Send welcome email
+                                A-->>F: 201 Created
+                                F->>F: Set cookie
+                                F->>U: Redirect to /verify-email
+                        </div>
+                    </div>
+
+                    <div class="card p-6 mb-6">
+                        <h3 class="text-lg font-bold mb-4">Email Verification Flow</h3>
+                        <div class="mermaid">
+                            sequenceDiagram
+                                participant U as User
+                                participant F as Frontend
+                                participant A as EmailVerifyHandler
+                                participant S as EmailService
+                                participant R as Repository
+                                
+                                U->>F: Click "Send OTP"
+                                F->>A: POST /email_verification/send_otp
+                                A->>S: GenerateOTP()
+                                S->>R: Update user OTP
+                                S->>A: OTP code
+                                A->>A: Send email with OTP
+                                A-->>F: 200 OK
+                                F->>U: Show OTP input form
+                                
+                                U->>F: Enter 6-digit OTP
+                                F->>A: POST /email_verification/verify_otp
+                                A->>S: VerifyOTP(email, otp)
+                                S->>R: Check OTP match
+                                S->>R: Update is_verified = true
+                                S-->>A: Success
+                                A-->>F: 200 OK
+                                F->>U: Navigate to /home
+                        </div>
+                    </div>
+
+                    <div class="card p-6">
+                        <h3 class="text-lg font-bold mb-4">Password Reset Flow</h3>
+                        <div class="mermaid">
+                            sequenceDiagram
+                                participant U as User
+                                participant F as Frontend
+                                participant A as PasswordResetHandler
+                                participant S as EmailService
+                                participant R as Repository
+                                
+                                U->>F: Enter email
+                                F->>A: POST /password_reset/send_otp
+                                A->>R: GetUserByEmail(email)
+                                alt User found
+                                    R-->>A: User
+                                    A->>S: GenerateOTP()
+                                    S->>R: Save OTP
+                                    S-->>A: OTP
+                                    A->>A: Send email
+                                    A-->>F: 200 OK
+                                    F->>U: Redirect to verify-otp
+                                else User not found
+                                    A-->>F: 404 Not Found
+                                    F->>U: Show "email not found"
+                                end
+                                
+                                U->>F: Enter OTP + new password
+                                F->>A: POST /password_reset/set_password
+                                A->>S: VerifyOTP(email, otp)
+                                S-->>A: Valid
+                                A->>R: Update password (bcrypt)
+                                A-->>F: 200 OK
+                                F->>U: Navigate to /login
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Security Section -->
+            <section id="security" class="tab-content">
+                <div class="fade-in">
+                    <h2 class="text-3xl font-bold mb-2">Security Implementation</h2>
+                    <p class="text-slate-500 mb-8">Protection mechanisms and best practices</p>
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                        <div class="card p-6">
+                            <h3 class="text-lg font-bold mb-4 flex items-center gap-2">
+                                <i class="fas fa-shield-halved text-green-500"></i> Implemented Security
+                            </h3>
+                            <div class="space-y-3">
+                                <div class="p-3 rounded-lg bg-green-500/10 border border-green-500/20">
+                                    <div class="flex items-center gap-2 mb-1">
+                                        <i class="fas fa-cookie text-green-500"></i>
+                                        <span class="font-semibold">HttpOnly Cookies</span>
+                                    </div>
+                                    <p class="text-sm text-slate-400">Tokens stored in HttpOnly cookies, inaccessible to JavaScript</p>
+                                </div>
+                                <div class="p-3 rounded-lg bg-green-500/10 border border-green-500/20">
+                                    <div class="flex items-center gap-2 mb-1">
+                                        <i class="fas fa-key text-blue-500"></i>
+                                        <span class="font-semibold">PASETO Tokens</span>
+                                    </div>
+                                    <p class="text-sm text-slate-400">Modern stateless token format with built-in versioning</p>
+                                </div>
+                                <div class="p-3 rounded-lg bg-green-500/10 border border-green-500/20">
+                                    <div class="flex items-center gap-2 mb-1">
+                                        <i class="fas fa-lock text-purple-500"></i>
+                                        <span class="font-semibold">Bcrypt Hashing</span>
+                                    </div>
+                                    <p class="text-sm text-slate-400">Passwords hashed with bcrypt (cost factor 10)</p>
+                                </div>
+                                <div class="p-3 rounded-lg bg-green-500/10 border border-green-500/20">
+                                    <div class="flex items-center gap-2 mb-1">
+                                        <i class="fas fa-clock text-yellow-500"></i>
+                                        <span class="font-semibold">OTP Expiry</span>
+                                    </div>
+                                    <p class="text-sm text-slate-400">6-digit OTPs expire in 5 minutes</p>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="card p-6">
+                            <h3 class="text-lg font-bold mb-4 flex items-center gap-2">
+                                <i class="fas fa-cors text-cyan-500"></i> CORS Configuration
+                            </h3>
+                            <div class="bg-slate-900 p-4 rounded-lg">
+                                <pre class="text-xs text-slate-400">Access-Control-Allow-Origin: 
+  http://localhost:5173
+Access-Control-Allow-Methods: 
+  GET, POST, PUT, DELETE, OPTIONS
+Access-Control-Allow-Headers: 
+  Content-Type, Cookie
+Access-Control-Allow-Credentials: true</pre>
+                            </div>
+                            <div class="mt-4 space-y-2">
+                                <div class="flex items-center gap-2"><i class="fas fa-check text-green-400"></i> Credentials enabled</div>
+                                <div class="flex items-center gap-2"><i class="fas fa-check text-green-400"></i> Specific origin allowed</div>
+                                <div class="flex items-center gap-2"><i class="fas fa-check text-green-400"></i> Cookie header allowed</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="card p-6">
+                        <h3 class="text-lg font-bold mb-4">Middleware Security Chain</h3>
+                        <div class="flex flex-wrap items-center justify-center gap-4">
+                            <div class="p-4 rounded-lg bg-red-500/20 border border-red-500/30 text-center">
+                                <i class="fas fa-bug-slash text-2xl text-red-500 mb-2"></i>
+                                <p class="font-semibold">Recoverer</p>
+                                <p class="text-xs text-slate-400">Panic recovery</p>
+                            </div>
+                            <div class="text-slate-500"><i class="fas fa-arrow-right"></i></div>
+                            <div class="p-4 rounded-lg bg-blue-500/20 border border-blue-500/30 text-center">
+                                <i class="fas fa-list text-2xl text-blue-500 mb-2"></i>
+                                <p class="font-semibold">Logger</p>
+                                <p class="text-xs text-slate-400">Request logging</p>
+                            </div>
+                            <div class="text-slate-500"><i class="fas fa-arrow-right"></i></div>
+                            <div class="p-4 rounded-lg bg-purple-500/20 border border-purple-500/30 text-center">
+                                <i class="fas fa-user-shield text-2xl text-purple-500 mb-2"></i>
+                                <p class="font-semibold">AuthMiddleware</p>
+                                <p class="text-xs text-slate-400">Token validation</p>
+                            </div>
+                            <div class="text-slate-500"><i class="fas fa-arrow-right"></i></div>
+                            <div class="p-4 rounded-lg bg-green-500/20 border border-green-500/30 text-center">
+                                <i class="fas fa-file-code text-2xl text-green-500 mb-2"></i>
+                                <p class="font-semibold">Handler</p>
+                                <p class="text-xs text-slate-400">Business logic</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <script>
+        // Initialize mermaid
+        mermaid.initialize({ startOnLoad: true, theme: 'dark' });
+        
+        // Theme toggle
+        function toggleTheme() {
+            const html = document.documentElement;
+            if (html.classList.contains('dark')) {
+                html.classList.remove('dark');
+                html.classList.add('light');
+            } else {
+                html.classList.remove('light');
+                html.classList.add('dark');
+            }
+        }
+        
+        // Section navigation
+        function showSection(sectionId) {
+            document.querySelectorAll('.tab-content').forEach(el => {
+                el.classList.remove('active');
+            });
+            document.getElementById(sectionId).classList.add('active');
+            
+            // Update nav
+            document.querySelectorAll('.nav-item').forEach(el => {
+                el.classList.remove('bg-primary', 'text-white');
+            });
+            event.target.classList.add('bg-primary', 'text-white');
+        }
+        
+        // Intersection Observer for animations
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.classList.add('animate-in');
+                }
+            });
+        }, { threshold: 0.1 });
+        
+        document.querySelectorAll('.card, .flow-step').forEach(el => {
+            observer.observe(el);
+        });
+    </script>
+</body>
+</html>

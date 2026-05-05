@@ -8,8 +8,19 @@ import (
 	"github.com/suryansh74/chat_app/internal/auth/handlers"
 	authrepositories "github.com/suryansh74/chat_app/internal/auth/repositories"
 	authservices "github.com/suryansh74/chat_app/internal/auth/services"
+	chathandlers "github.com/suryansh74/chat_app/internal/chat/handlers"
+	chatrepositories "github.com/suryansh74/chat_app/internal/chat/repositories"
+	chatservices "github.com/suryansh74/chat_app/internal/chat/services"
+	friendshandlers "github.com/suryansh74/chat_app/internal/friends/handlers"
+	friendsrepositories "github.com/suryansh74/chat_app/internal/friends/repositories"
+	friendsservices "github.com/suryansh74/chat_app/internal/friends/services"
+	notificationhandlers "github.com/suryansh74/chat_app/internal/notification/handlers"
+	notificationrepositories "github.com/suryansh74/chat_app/internal/notification/repositories"
+	notificationservices "github.com/suryansh74/chat_app/internal/notification/services"
+	ws "github.com/suryansh74/chat_app/internal/ws"
 	"github.com/suryansh74/chat_app/pkg/logger"
-	"github.com/suryansh74/chat_app/shared/email"
+	"github.com/suryansh74/chat_app/shared/cache"
+	emailadapters "github.com/suryansh74/chat_app/shared/email/adapters"
 	"github.com/suryansh74/chat_app/shared/token"
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
@@ -21,11 +32,14 @@ type server struct {
 	authHandler              *handlers.AuthHandler
 	emailVerificationHandler *handlers.EmailVerificationHandler
 	passwordResetHandler     *handlers.PasswordResetHandler
+	friendsHandler           *friendshandlers.FriendsHandler
+	chatHandler              *chathandlers.ChatHandler
+	notificationHandler      *notificationhandlers.NotificationHandler
+	wsHub                    *ws.Hub
 	tokenMaker               token.Maker
 }
 
 func NewServer(cfg *config.Config) *server {
-	// Connect to MySQL
 	dsn := authrepositories.GetDSN(
 		cfg.MySQLHost,
 		cfg.MySQLPort,
@@ -41,11 +55,22 @@ func NewServer(cfg *config.Config) *server {
 		logger.Log.Fatal("Failed to connect to MySQL", "error", err)
 	}
 
-	// Auto migrate the database
 	if err := authrepositories.AutoMigrate(db); err != nil {
 		logger.Log.Fatal("Failed to migrate database", "error", err)
 	}
 	logger.Log.Info("Database migrated successfully")
+
+	if err := friendsrepositories.AutoMigrate(db); err != nil {
+		logger.Log.Fatal("Failed to migrate friends", "error", err)
+	}
+
+	if err := chatrepositories.AutoMigrate(db); err != nil {
+		logger.Log.Fatal("Failed to migrate chat", "error", err)
+	}
+
+	if err := notificationrepositories.AutoMigrate(db); err != nil {
+		logger.Log.Fatal("Failed to migrate notifications", "error", err)
+	}
 
 	repo := authrepositories.NewMySQLUserRepository(db)
 	service := authservices.NewAuthService(repo)
@@ -53,9 +78,36 @@ func NewServer(cfg *config.Config) *server {
 	authHandler := handlers.NewAuthHandler(service, tokenMaker, cfg.CookieMaxAge, cfg.CookieSameSite)
 
 	emailVerificationService := authservices.NewEmailVerificationService(repo, cfg.OtpExpiryMinutes, cfg.OtpMaxAttempts)
-	emailSender := email.NewSender(cfg.SMTPHost, cfg.SMTPPort, cfg.SMTPUsername, cfg.SMTPPassword)
+
+	var emailSender emailadapters.EmailSenderPort
+	if cfg.SMTPUsername == "" && cfg.SMTPPassword == "" {
+		logger.Log.Info("Using Mailpit adapter", "host", cfg.SMTPHost, "port", cfg.SMTPPort)
+		emailSender = emailadapters.NewMailpitAdapter(cfg.SMTPHost, cfg.SMTPPort)
+	} else {
+		logger.Log.Info("Using Gmail adapter", "host", cfg.SMTPHost, "port", cfg.SMTPPort)
+		emailSender = emailadapters.NewGmailAdapter(cfg.SMTPHost, cfg.SMTPPort, cfg.SMTPUsername, cfg.SMTPPassword)
+	}
+
 	emailVerificationHandler := handlers.NewEmailVerificationHandler(emailVerificationService, emailSender, tokenMaker, cfg.CookieMaxAge)
 	passwordResetHandler := handlers.NewPasswordResetHandler(emailVerificationService, emailSender, tokenMaker, cfg.PasswordResetRedirectURL)
+
+	inMemoryCache := cache.NewInMemoryCache()
+
+	friendRepo := friendsrepositories.NewMySQLFriendRepository(db)
+	notificationRepo := notificationrepositories.NewMySQLNotificationRepository(db)
+	notificationSvc := notificationservices.NewNotificationService(notificationRepo, inMemoryCache, emailSender)
+
+	wsHub := ws.NewHub()
+	go wsHub.Run()
+
+	friendsService := friendsservices.NewFriendsService(friendRepo, notificationSvc, emailSender, tokenMaker, wsHub)
+	friendsHandler := friendshandlers.NewFriendsHandler(friendsService)
+
+	chatRepo := chatrepositories.NewMySQLChatRepository(db)
+	chatService := chatservices.NewChatService(chatRepo, friendRepo, notificationSvc, wsHub)
+	chatHandler := chathandlers.NewChatHandler(chatService)
+
+	notificationHandler := notificationhandlers.NewNotificationHandler(notificationSvc)
 
 	return &server{
 		cfg:                      cfg,
@@ -63,6 +115,10 @@ func NewServer(cfg *config.Config) *server {
 		authHandler:              authHandler,
 		emailVerificationHandler: emailVerificationHandler,
 		passwordResetHandler:     passwordResetHandler,
+		friendsHandler:           friendsHandler,
+		chatHandler:              chatHandler,
+		notificationHandler:      notificationHandler,
+		wsHub:                    wsHub,
 		tokenMaker:               tokenMaker,
 	}
 }

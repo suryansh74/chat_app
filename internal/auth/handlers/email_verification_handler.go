@@ -59,6 +59,7 @@ func (h *EmailVerificationHandler) SendOTP(w http.ResponseWriter, r *http.Reques
 
 	otp, err := h.service.SendOTP(payload.User.Email)
 	if err != nil {
+		logger.Log.Error("SendOTP: failed to generate OTP", "error", err.Error(), "email", payload.User.Email)
 		if err == authservices.ErrAlreadyVerified {
 			helper.WriteJSON(w, http.StatusBadRequest, map[string]string{
 				"error": "email already verified",
@@ -74,7 +75,10 @@ func (h *EmailVerificationHandler) SendOTP(w http.ResponseWriter, r *http.Reques
 	subject := "Your OTP for Email Verification"
 	body := "Your verification code is: " + otp + ". This code will expire in 5 minutes."
 
+	logger.Log.Info("SendOTP: sending email", "email", payload.User.Email, "otp", otp)
+
 	if err := h.emailSender.SendEmail(payload.User.Email, subject, body); err != nil {
+		logger.Log.Error("SendOTP: failed to send email", "error", err.Error(), "email", payload.User.Email)
 		helper.WriteJSON(w, http.StatusInternalServerError, map[string]string{
 			"error": "failed to send email",
 		})

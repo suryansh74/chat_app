@@ -26,8 +26,8 @@ export function RegisterPage() {
     defaultValues: {
       name: "Suryansh Awasthi",
       email: "suryanshawasthi56@gmail.com",
-      password: "Sample123#",
-      password_confirmation: "Sample123#",
+      password: "Krazymon123#",
+      password_confirmation: "Krazymon123#",
     },
   });
 

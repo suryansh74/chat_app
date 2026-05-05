@@ -1,6 +1,10 @@
-phase 1: authentication package 
-phase 1.1: setup of rate limiting
+authentication package 
+setup of rate limiting
 
-future change:
 change otp logic from db to cache
 
+take care of group later for now implement only for freinds one to one
+
+remove default value for name email and password for registeration and login
+
+add as much as can icons
