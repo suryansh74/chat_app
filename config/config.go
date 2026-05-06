@@ -30,6 +30,8 @@ type Config struct {
 	MySQLUser     string `mapstructure:"MYSQL_USER"`
 	MySQLPassword string `mapstructure:"MYSQL_PASSWORD"`
 	MySQLDatabase string `mapstructure:"MYSQL_DATABASE"`
+
+	RedisURL string `mapstructure:"REDIS_URL"`
 }
 
 func LoadConfig() (config Config, err error) {

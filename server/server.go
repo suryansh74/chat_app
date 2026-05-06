@@ -91,11 +91,15 @@ func NewServer(cfg *config.Config) *server {
 	emailVerificationHandler := handlers.NewEmailVerificationHandler(emailVerificationService, emailSender, tokenMaker, cfg.CookieMaxAge)
 	passwordResetHandler := handlers.NewPasswordResetHandler(emailVerificationService, emailSender, tokenMaker, cfg.PasswordResetRedirectURL)
 
-	inMemoryCache := cache.NewInMemoryCache()
+	redisCache, err := cache.NewRedisCache(cfg.RedisURL)
+	if err != nil {
+		logger.Log.Fatal("Failed to connect to Redis", "error", err)
+	}
+	logger.Log.Info("Connected to Redis", "url", cfg.RedisURL)
 
 	friendRepo := friendsrepositories.NewMySQLFriendRepository(db)
 	notificationRepo := notificationrepositories.NewMySQLNotificationRepository(db)
-	notificationSvc := notificationservices.NewNotificationService(notificationRepo, inMemoryCache, emailSender)
+	notificationSvc := notificationservices.NewNotificationService(notificationRepo, redisCache, emailSender)
 
 	wsHub := ws.NewHub()
 	go wsHub.Run()

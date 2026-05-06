@@ -1,6 +1,8 @@
 package notificationservices
 
 import (
+	"fmt"
+
 	"github.com/google/uuid"
 	notificationdomain "github.com/suryansh74/chat_app/internal/notification/domain"
 	notificationrepositories "github.com/suryansh74/chat_app/internal/notification/repositories"
@@ -39,6 +41,10 @@ func NewNotificationService(
 	}
 }
 
+func unreadCountKey(userID string) string {
+	return fmt.Sprintf("unread_count:%s", userID)
+}
+
 func (s *notificationService) CreateFriendRequest(fromUserID, toUserID string) error {
 	notification := &notificationdomain.Notification{
 		ID:         uuid.New().String(),
@@ -55,6 +61,7 @@ func (s *notificationService) CreateFriendRequest(fromUserID, toUserID string) e
 		return err
 	}
 
+	s.cache.Delete(unreadCountKey(toUserID))
 	return nil
 }
 
@@ -95,17 +102,51 @@ func (s *notificationService) GetNotificationByID(id string) (*notificationdomai
 }
 
 func (s *notificationService) MarkAsRead(id string) error {
-	return s.repo.MarkAsRead(id)
+	err := s.repo.MarkAsRead(id)
+	if err != nil {
+		return err
+	}
+
+	notif, err := s.repo.GetByID(id)
+	if err == nil && notif != nil {
+		s.cache.Delete(unreadCountKey(notif.ToUserID))
+	}
+
+	return nil
 }
 
 func (s *notificationService) MarkAllAsRead(userID string) error {
-	return s.repo.MarkAllAsRead(userID)
+	err := s.repo.MarkAllAsRead(userID)
+	if err != nil {
+		return err
+	}
+
+	s.cache.Delete(unreadCountKey(userID))
+	return nil
 }
 
 func (s *notificationService) DeleteNotification(id string) error {
+	notif, err := s.repo.GetByID(id)
+	if err == nil && notif != nil {
+		s.cache.Delete(unreadCountKey(notif.ToUserID))
+	}
+
 	return s.repo.Delete(id)
 }
 
 func (s *notificationService) GetUnreadCount(userID string) (int64, error) {
-	return s.repo.GetUnreadCount(userID)
+	cached, err := s.cache.Get(unreadCountKey(userID))
+	if err == nil && cached != nil {
+		if val, ok := cached.(float64); ok {
+			return int64(val), nil
+		}
+	}
+
+	count, err := s.repo.GetUnreadCount(userID)
+	if err != nil {
+		return 0, err
+	}
+
+	s.cache.Set(unreadCountKey(userID), count, 10*time.Second)
+	return count, nil
 }
