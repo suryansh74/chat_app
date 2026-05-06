@@ -201,6 +201,11 @@ export const chatApi = {
     }),
 };
 
+export const presenceApi = {
+  checkOnline: (userIds: string[]) =>
+    api.get<{ online: Record<string, boolean> }>(`/presence?user_ids=${userIds.join(',')}`),
+};
+
 export const notificationApi = {
   getNotifications: (limit?: number, offset?: number) => {
     let url = "/notification/list";

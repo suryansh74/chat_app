@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, useCallback } from "react"
 import { Send } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { chatApi, type MessageListItem, type FriendListItem } from "@/lib/api"
+import { chatApi, presenceApi, type MessageListItem, type FriendListItem } from "@/lib/api"
 import { useWebSocket } from "@/contexts/WebSocketContext"
 
 interface ChatWindowProps {
@@ -15,6 +15,7 @@ export function ChatWindow({ friend, userId, onFriendRemoved }: ChatWindowProps 
   const [messages, setMessages] = useState<MessageListItem[]>([])
   const [newMessage, setNewMessage] = useState("")
   const [loading, setLoading] = useState(true)
+  const [isOnline, setIsOnline] = useState(false)
   const messagesEndRef = useRef<HTMLDivElement>(null)
 
   const loadMessages = useCallback(async () => {
@@ -31,6 +32,14 @@ export function ChatWindow({ friend, userId, onFriendRemoved }: ChatWindowProps 
   }, [loadMessages])
 
   useEffect(() => {
+    presenceApi.checkOnline([friend.friend_id]).then(({ data }) => {
+      if (data?.online) {
+        setIsOnline(!!data.online[friend.friend_id])
+      }
+    })
+  }, [friend.friend_id])
+
+  useEffect(() => {
     const handleFriendRemoved = (data: unknown) => {
       const d = data as { message: { user_id: string } }
       if (d.message.user_id === friend.friend_id) {
@@ -41,6 +50,24 @@ export function ChatWindow({ friend, userId, onFriendRemoved }: ChatWindowProps 
     subscribe("friend_removed", handleFriendRemoved)
     return () => unsubscribe("friend_removed", handleFriendRemoved)
   }, [friend.friend_id, subscribe, unsubscribe, onFriendRemoved])
+
+  useEffect(() => {
+    const handleOnline = (data: unknown) => {
+      const d = data as { message: { user_id: string } }
+      if (d.message.user_id === friend.friend_id) setIsOnline(true)
+    }
+    const handleOffline = (data: unknown) => {
+      const d = data as { message: { user_id: string } }
+      if (d.message.user_id === friend.friend_id) setIsOnline(false)
+    }
+
+    subscribe("user_online", handleOnline)
+    subscribe("user_offline", handleOffline)
+    return () => {
+      unsubscribe("user_online", handleOnline)
+      unsubscribe("user_offline", handleOffline)
+    }
+  }, [friend.friend_id, subscribe, unsubscribe])
 
   useEffect(() => {
     const handleNewMessage = (data: unknown) => {
@@ -95,6 +122,10 @@ export function ChatWindow({ friend, userId, onFriendRemoved }: ChatWindowProps 
       <div className="border-b p-3">
         <h2 className="font-semibold">{friend.friend_name}</h2>
         <p className="text-sm text-muted-foreground">{friend.friend_email}</p>
+        <p className="text-xs font-medium">
+          <span className={`inline-block h-2 w-2 rounded-full mr-1 ${isOnline ? "bg-green-500" : "bg-gray-400"}`} />
+          {isOnline ? "Online" : "Offline"}
+        </p>
       </div>
 
       <div className="flex-1 overflow-y-auto p-3">

@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from "react"
 import { MoreVertical, Trash2 } from "lucide-react"
-import { friendsApi, type FriendListItem } from "@/lib/api"
+import { friendsApi, presenceApi, type FriendListItem } from "@/lib/api"
 import { useWebSocket } from "@/contexts/WebSocketContext"
 import { toast } from "sonner"
 
@@ -13,6 +13,7 @@ export function FriendsList({ onSelectFriend, selectedFriendId }: FriendsListPro
   const { subscribe, unsubscribe } = useWebSocket()
   const [friends, setFriends] = useState<FriendListItem[]>([])
   const [loading, setLoading] = useState(true)
+  const [onlineMap, setOnlineMap] = useState<Record<string, boolean>>({})
   const [openMenuId, setOpenMenuId] = useState<string | null>(null)
   const [confirmUnfriendId, setConfirmUnfriendId] = useState<string | null>(null)
   const menuRef = useRef<HTMLDivElement>(null)
@@ -29,6 +30,16 @@ export function FriendsList({ onSelectFriend, selectedFriendId }: FriendsListPro
   useEffect(() => {
     loadFriends()
   }, [loadFriends])
+
+  useEffect(() => {
+    if (friends.length === 0) return
+    const ids = friends.map((f) => f.friend_id)
+    presenceApi.checkOnline(ids).then(({ data }) => {
+      if (data?.online) {
+        setOnlineMap(data.online)
+      }
+    })
+  }, [friends])
 
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
@@ -57,6 +68,24 @@ export function FriendsList({ onSelectFriend, selectedFriendId }: FriendsListPro
 
     subscribe("friend_removed", handleFriendRemoved)
     return () => unsubscribe("friend_removed", handleFriendRemoved)
+  }, [subscribe, unsubscribe])
+
+  useEffect(() => {
+    const handleOnline = (data: unknown) => {
+      const d = data as { message: { user_id: string } }
+      setOnlineMap((prev) => ({ ...prev, [d.message.user_id]: true }))
+    }
+    const handleOffline = (data: unknown) => {
+      const d = data as { message: { user_id: string } }
+      setOnlineMap((prev) => ({ ...prev, [d.message.user_id]: false }))
+    }
+
+    subscribe("user_online", handleOnline)
+    subscribe("user_offline", handleOffline)
+    return () => {
+      unsubscribe("user_online", handleOnline)
+      unsubscribe("user_offline", handleOffline)
+    }
   }, [subscribe, unsubscribe])
 
   useEffect(() => {
@@ -159,7 +188,12 @@ export function FriendsList({ onSelectFriend, selectedFriendId }: FriendsListPro
                   }`}
                 >
                   <div className="flex items-center justify-between">
-                    <span className="font-medium">{friend.friend_name}</span>
+                    <div className="flex items-center gap-2">
+                      <span className={`inline-block h-2.5 w-2.5 shrink-0 rounded-full ${
+                        onlineMap[friend.friend_id] ? "bg-green-500" : "bg-gray-400"
+                      }`} />
+                      <span className="font-medium">{friend.friend_name}</span>
+                    </div>
                     {friend.unread_count > 0 && (
                       <span className="flex h-5 w-5 items-center justify-center rounded-full bg-primary text-xs text-primary-foreground">
                         {friend.unread_count}

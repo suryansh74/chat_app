@@ -95,6 +95,12 @@ func (s *server) setupRoutes() {
 				r.Put("/read-all", s.notificationHandler.MarkAllAsRead)
 			})
 		})
+
+		// Presence route (requires verified email)
+		r.Group(func(p chi.Router) {
+			p.Use(authmiddleware.VerifiedMiddleware(s.tokenMaker))
+			p.Get("/presence", s.presenceHandler.CheckPresence)
+		})
 	})
 
 	// WebSocket route (no auth middleware - auth via query param)

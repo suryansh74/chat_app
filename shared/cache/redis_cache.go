@@ -26,6 +26,10 @@ func NewRedisCache(addr string) (*RedisCache, error) {
 	return &RedisCache{client: client, ctx: ctx}, nil
 }
 
+func NewRedisCacheFromClient(client *redis.Client) *RedisCache {
+	return &RedisCache{client: client, ctx: context.Background()}
+}
+
 func (c *RedisCache) Get(key string) (interface{}, error) {
 	val, err := c.client.Get(c.ctx, key).Result()
 	if err == redis.Nil {

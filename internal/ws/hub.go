@@ -1,11 +1,14 @@
 package ws
 
 import (
+	"context"
 	"encoding/json"
 	"net/http"
 	"sync"
+	"time"
 
 	"github.com/gorilla/websocket"
+	"github.com/redis/go-redis/v9"
 	"github.com/suryansh74/chat_app/pkg/logger"
 )
 
@@ -14,9 +17,9 @@ var (
 	hubOnce   sync.Once
 )
 
-func GetGlobalHub() *Hub {
+func GetGlobalHub(redisClient *redis.Client) *Hub {
 	hubOnce.Do(func() {
-		globalHub = NewHub()
+		globalHub = NewHub(redisClient)
 		go globalHub.Run()
 	})
 	return globalHub
@@ -36,19 +39,23 @@ type Client struct {
 }
 
 type Hub struct {
-	clients    map[string]*Client
-	broadcast  chan []byte
-	register   chan *Client
-	unregister chan *Client
-	mu         sync.RWMutex
+	clients     map[string]*Client
+	broadcast   chan []byte
+	register    chan *Client
+	unregister  chan *Client
+	mu          sync.RWMutex
+	redisClient *redis.Client
+	ctx         context.Context
 }
 
-func NewHub() *Hub {
+func NewHub(redisClient *redis.Client) *Hub {
 	return &Hub{
-		clients:    make(map[string]*Client),
-		broadcast:  make(chan []byte, 256),
-		register:   make(chan *Client),
-		unregister: make(chan *Client),
+		clients:     make(map[string]*Client),
+		broadcast:   make(chan []byte, 256),
+		register:    make(chan *Client),
+		unregister:  make(chan *Client),
+		redisClient: redisClient,
+		ctx:         context.Background(),
 	}
 }
 
@@ -59,7 +66,14 @@ func (h *Hub) Run() {
 			h.mu.Lock()
 			h.clients[client.userID] = client
 			h.mu.Unlock()
+
+			if h.redisClient != nil {
+				h.redisClient.Set(h.ctx, "online:"+client.userID, "1", 30*time.Second)
+			}
+
 			logger.Log.Info("Client registered", "userID", client.userID)
+
+			go h.broadcastPresence(client.userID, true)
 
 		case client := <-h.unregister:
 			h.mu.Lock()
@@ -68,7 +82,14 @@ func (h *Hub) Run() {
 				close(client.send)
 			}
 			h.mu.Unlock()
+
+			if h.redisClient != nil {
+				h.redisClient.Del(h.ctx, "online:"+client.userID)
+			}
+
 			logger.Log.Info("Client unregistered", "userID", client.userID)
+
+			go h.broadcastPresence(client.userID, false)
 
 		case message := <-h.broadcast:
 			h.mu.RLock()
@@ -83,6 +104,29 @@ func (h *Hub) Run() {
 			h.mu.RUnlock()
 		}
 	}
+}
+
+func (h *Hub) broadcastPresence(userID string, online bool) {
+	msgType := "user_offline"
+	if online {
+		msgType = "user_online"
+	}
+	msg := map[string]interface{}{
+		"type":    msgType,
+		"message": map[string]string{"user_id": userID},
+	}
+	msgBytes, _ := json.Marshal(msg)
+
+	h.mu.RLock()
+	for _, client := range h.clients {
+		if client.userID != userID {
+			select {
+			case client.send <- msgBytes:
+			default:
+			}
+		}
+	}
+	h.mu.RUnlock()
 }
 
 func (h *Hub) SendToUser(userID string, message []byte) {
@@ -139,13 +183,29 @@ func (h *Hub) GetClient(userID string) (*Client, bool) {
 	return client, ok
 }
 
+func (h *Hub) RefreshPresence(userID string) {
+	if h.redisClient != nil {
+		h.redisClient.Set(h.ctx, "online:"+userID, "1", 30*time.Second)
+	}
+}
+
 func (c *Client) readPump() {
 	defer func() {
 		c.hub.unregister <- c
 		c.conn.Close()
 	}()
 
+	ticker := time.NewTicker(10 * time.Second)
+	defer ticker.Stop()
+
 	for {
+		select {
+		case <-ticker.C:
+			c.hub.RefreshPresence(c.userID)
+		default:
+		}
+
+		c.conn.SetReadDeadline(time.Now().Add(15 * time.Second))
 		_, message, err := c.conn.ReadMessage()
 		if err != nil {
 			if websocket.IsUnexpectedCloseError(err, websocket.CloseGoingAway, websocket.CloseAbnormalClosure) {
@@ -169,16 +229,24 @@ func (c *Client) readPump() {
 func (c *Client) writePump() {
 	defer c.conn.Close()
 
-	for {
-		message, ok := <-c.send
-		if !ok {
-			c.conn.WriteMessage(websocket.CloseMessage, []byte{})
-			return
-		}
+	ticker := time.NewTicker(10 * time.Second)
+	defer ticker.Stop()
 
-		if err := c.conn.WriteMessage(websocket.TextMessage, message); err != nil {
-			logger.Log.Error("Failed to write message", "error", err)
-			return
+	for {
+		select {
+		case message, ok := <-c.send:
+			if !ok {
+				c.conn.WriteMessage(websocket.CloseMessage, []byte{})
+				return
+			}
+
+			if err := c.conn.WriteMessage(websocket.TextMessage, message); err != nil {
+				logger.Log.Error("Failed to write message", "error", err)
+				return
+			}
+
+		case <-ticker.C:
+			c.conn.WriteMessage(websocket.PingMessage, nil)
 		}
 	}
 }
